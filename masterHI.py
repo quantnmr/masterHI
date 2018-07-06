@@ -250,7 +250,7 @@ class Bruker3D(object):
         script.append('def recon(x):')
         script.append('    global num')
         script.append('    path, dirs, files = next(walk(\'./yzx_ist\'))')
-        script.append('    i = len(files)+1')
+        script.append('    i = len(files)')
         script.append('    hashsize = int(num/32.0)')
         script.append('    hashes = int(float(i)/float(hashsize))')
         script.append('    print(\'[\', end=\'\')')
