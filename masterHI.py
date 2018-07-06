@@ -259,7 +259,7 @@ class Bruker3D(object):
         script.append('        else:')
         script.append('            print(\'-\', end=\'\')')
         script.append('    perc = 100.0*i/num')
-        script.append('    print(\'%.2f\' % perc + \' %\', end=\'\\r\')')
+        script.append('    print(\' %.2f\' % perc + \' % done\', end=\'\\r\')')
         script.append('    sys.stdout.flush()')
         script.append('    call(["./ist.com", x])')
         script.append('')
@@ -268,6 +268,7 @@ class Bruker3D(object):
         else:
             script.append('pool = Pool(processes='+str(proc)+')')
         script.append('it = pool.map(recon, onlyfiles)')
+        script.append('print('')')
         outfile = open(filenames[0], 'w')
         for item in script:
             outfile.write("%s\n" % item)
