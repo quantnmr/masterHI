@@ -4,8 +4,11 @@ masterHI is an semi-automatic script generator for the processing of **Bruker fo
 
 The basic workflow of non-uniformally sampled data reconstruction is:
 * conversion from Bruker format to nmrPipe format
+
 * a Fourier transform of the direct dimension first along with phase correction
+
 * a reconstruction step of all the indirect 2D planes for each point in the processed direct dimension
+
 * a final Fourier transform of the indirect 2D planes
 
 These four steps are carried out by hmsIST by using 6 independent scripts that perform each task along the processing pipeline. These are typicall called:
