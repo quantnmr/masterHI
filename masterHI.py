@@ -270,7 +270,8 @@ class Bruker3D(object):
         else:
             script.append('pool = Pool(processes='+str(proc)+')')
         script.append('it = pool.map(recon, onlyfiles)')
-        script.append('print('')')
+        script.append('print(\'[################################] 100.00% done\')')
+        script.append('print(\'\')')
         outfile = open(filenames[0], 'w')
         for item in script:
             outfile.write("%s\n" % item)
