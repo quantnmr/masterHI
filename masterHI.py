@@ -8,7 +8,6 @@ import pickle
 
 parser = argparse.ArgumentParser(description='hmsIST NUS Processing Script Generator')
 
-
 parser.add_argument('--conv', default=False, action='store_true')
 parser.add_argument('--dir', default=False)
 parser.add_argument('--nsamples', default=False)
