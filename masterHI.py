@@ -221,6 +221,8 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
 
         script.append('| pipe2xyz -ov -out yzx/data%03d.dat -z')
+        script.append('rm -rf yzx_ist')
+        script.append('mkdir yzx_ist')
 
         outfile = open(filename, 'w')
         for item in script:
@@ -239,12 +241,24 @@ class Bruker3D(object):
         script.append('import sys')
         script.append('from os import listdir')
         script.append('from os.path import isfile, join')
-        #script.append('stdscr = curses.initscr()')
+        script.append('from os import walk')
+        script.append('')
+        script.append('onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]')
+        script.append('onlyfiles.sort()')
+        script.append('num=len(onlyfiles)')
         script.append('')
         script.append('def recon(x):')
-        #script.append('    stdscr.addstr(0, 0, str(x))')
-        #script.append('    stdscr.refresh()')
-        script.append('    print(x+\'     \', end=\'\\r\')')
+        script.append('    global num')
+        script.append('    path, dirs, files = next(walk(\'./yzx_ist\'))')
+        script.append('    i = len(files)')
+        script.append('    hashsize = int(num/32.0)')
+        script.append('    hashes = int(float(i)/float(hashsize))')
+        script.append('    for n in range(32):')
+        script.append('        if n < hashes:')
+        script.append('            print(\'#\', end=\'\')')
+        script.append('        else:')
+        script.append('            print(\'-\', end=\'\')')
+        script.append('    print(\' \', end=\'\\r\')')
         script.append('    sys.stdout.flush()')
         script.append('    call(["./ist.com", x])')
         script.append('')
@@ -252,9 +266,6 @@ class Bruker3D(object):
             script.append('pool = Pool(None)')
         else:
             script.append('pool = Pool(processes='+str(proc)+')')
-
-        script.append('onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]')
-        script.append('onlyfiles.sort()')
         script.append('it = pool.map(recon, onlyfiles)')
         outfile = open(filenames[0], 'w')
         for item in script:
