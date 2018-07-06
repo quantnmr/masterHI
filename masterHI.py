@@ -510,7 +510,7 @@ if (args.ft):
 
 
     else:
-        Print("You need to do a reconstruction of the data before the final FT of the reconstructed dimensons")
+        print("You need to do a reconstruction of the data before the final FT of the reconstructed dimensons")
 
 file = open('.masterHI.config','wb')
 pickle.dump(savedargs, file)
