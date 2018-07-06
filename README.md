@@ -16,7 +16,7 @@ These four steps are carried out by hmsIST by using 6 independent scripts that p
 
 * **phase.com** (Fourier transforms and phases direct dimension) and **prepare4recon**.com (prepares data for reconstruction)
 
-* **recon.py** and **ist.com** (parralelizes instances of ist.com for reconstruction) and **prepare4ft.com** (reformats the data)
+* **recon.py** and **hmsist.com** (parralelizes instances of hmsist.com for reconstruction) and **prepare4ft.com** (reformats the data)
 
 * **ft.com** (performs the final Fourier transformation of the 2 indirect dimensions)
 
