@@ -258,7 +258,7 @@ class Bruker3D(object):
         script.append('            print(\'#\', end=\'\')')
         script.append('        else:')
         script.append('            print(\'-\', end=\'\')')
-        script.append('    print(\' \', end=\'\\r\')')
+        script.append('    print(\' \'+str(i/num)+\' %\', end=\'\\r\')')
         script.append('    sys.stdout.flush()')
         script.append('    call(["./ist.com", x])')
         script.append('')
@@ -375,7 +375,7 @@ class Options(object):
 
 
 if (os.path.isfile('.masterHI.config')):
-    file = open('.masterHI.config','r')
+    file = open('.masterHI.config','rb')
     savedargs = pickle.load(file)
 
 else:
@@ -507,5 +507,5 @@ if (args.ft23):
     else:
         Print("You need to do a reconstruction of the data before the final FT of the reconstructed dimensons")
 
-file = open('.masterHI.config','w')
+file = open('.masterHI.config','wb')
 pickle.dump(savedargs, file)
