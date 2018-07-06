@@ -22,7 +22,7 @@ parser.add_argument('--xN', default=False)
 parser.add_argument('--yN', default=False)
 parser.add_argument('--autoN', default=False, action='store_true')
 parser.add_argument('--recon', default=False, action='store_true')
-parser.add_argument('--ft23', default=False, action='store_true')
+parser.add_argument('--ft', default=False, action='store_true')
 parser.add_argument('--triplerez', default=False, action='store_true')
 
 
@@ -160,7 +160,7 @@ class Bruker3D(object):
             outfile.write("%s\n" % item)
         outfile.close()
 
-    def genFT23(self, filename, triplerez=False, yACQ=False, zACQ=False):
+    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False):
 
         script = []
         script.append('#!/bin/csh')
@@ -263,7 +263,7 @@ class Bruker3D(object):
         script.append('    perc = 100.0*i/num')
         script.append('    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')')
         script.append('    sys.stdout.flush()')
-        script.append('    call(["./ist.com", x])')
+        script.append('    call(["./hmsist.com", x])')
         script.append('')
         if proc == 0:
             script.append('pool = Pool(None)')
@@ -375,7 +375,7 @@ class Options(object):
         self.beenConverted = False
         self.beenPhased = False
         self.beenReconed = False
-        self.beenFT23 = False
+        self.beenFT = False
 
 
 
@@ -401,14 +401,14 @@ if (args.conv): # requested a bruker to nmrpipe conversion
     data = Bruker3D(savedargs.dir)
     if args.nsamples:
         savedargs.nsamples = args.nsamples
-        r = data.genConversion('fid.com', ns=savedargs.nsamples)
+        r = data.genConversion('convert.com', ns=savedargs.nsamples)
     else:
-        r = data.genConversion('fid.com')
+        r = data.genConversion('convert.com')
 
     if (r != 1):
-        os.system('chmod 770 fid.com')
-        print("Converting Bruker Data to nmrPipe Data Format (fid.com)")
-        os.system('./fid.com')
+        os.system('chmod 770 convert.com')
+        print("Converting Bruker Data to nmrPipe Data Format (convert.com)")
+        os.system('./convert.com')
         savedargs.beenConverted = True
 
 
@@ -436,11 +436,11 @@ if (args.phasecheck): # requested a phase correction in first dimension
 
 
 
-        data.genDirectPhaseCheck('ft1xyz.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
+        data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
 
-        os.system('chmod 770 ft1xyz.com')
-        print("Transforming first Samples Point to test phases (ft1xyz.com)")
-        os.system('./ft1xyz.com')
+        os.system('chmod 770 phase.com')
+        print("Transforming first Samples Point to test phases (phase.com)")
+        os.system('./phase.com')
         os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
         savedargs.beenPhased = True
 
@@ -456,10 +456,10 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
         if (args.nsamples):
             savedargs.nsamples = args.nsamples
         print(savedargs.nsamples)
-        data.genPrepare('ft1yzx.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
-        os.system('chmod 770 ft1yzx.com')
-        print("Preparing Sampled Points for Full Reconstruction (ft1yzx.com)")
-        os.system('./ft1yzx.com')
+        data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
+        os.system('chmod 770 prepare4recon.com')
+        print("Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
+        os.system('./prepare4recon.com')
 
         if (args.proc):
             savedargs.proc = args.proc
@@ -473,9 +473,9 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
             savedargs.xN = 0
             savedargs.yN = 0
 
-        data.genRecon(['recon.py', 'ist.com', 'phf2pipe.com'], proc=savedargs.proc, itr=savedargs.itr, xN=savedargs.xN, yN=savedargs.yN)
-        os.system('chmod 770 recon.py ist.com phf2pipe.com')
-        print("Performing Reconstruction (recon.py / ist.com)")
+        data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=savedargs.proc, itr=savedargs.itr, xN=savedargs.xN, yN=savedargs.yN)
+        os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
+        print("Performing Reconstruction (recon.py / hmsist.com)")
 
         os.system('cp '+str(data.nuslist)+' nuslist.copy')
         with open('nuslist.copy') as f:
@@ -493,19 +493,19 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
 
         os.system('./recon.py yzx/')
         print("Moving from PHF to standard nmrPipe data order")
-        os.system('./phf2pipe.com')
+        os.system('./prepare4ft.com')
         savedargs.beenReconed = True
     else:
         print("You need to FT and phase the direct dimension first")
 
-if (args.ft23):
+if (args.ft):
     if (savedargs.beenReconed == True):
         data = Bruker3D(savedargs.dir)
         savedargs.triplerez = args.triplerez
         print(data.yACQ, data.zACQ)
-        data.genFT23('ft23.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ)
-        os.system('chmod 770 ft23.com')
-        os.system('./ft23.com')
+        data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ)
+        os.system('chmod 770 ft.com')
+        os.system('./ft.com')
 
 
 
