@@ -19,3 +19,6 @@ These four steps are carried out by hmsIST by using 6 independent scripts that p
 * **recon.py** and **ist.com** (parralelizes instances of ist.com for reconstruction) and **prepare4ft.com** (reformats the data)
 
 * **ft.com** (performs the final Fourier transformation of the 2 indirect dimensions)
+
+
+## The Good News
