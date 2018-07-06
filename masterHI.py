@@ -258,7 +258,7 @@ class Bruker3D(object):
         script.append('            print(\'#\', end=\'\')')
         script.append('        else:')
         script.append('            print(\'-\', end=\'\')')
-        script.append('    print(\' \'+str(i/num)+\' %\', end=\'\\r\')')
+        script.append('    print(\'%.2f\' % str(100.0*i/num) + \' %\', end=\'\\r\')')
         script.append('    sys.stdout.flush()')
         script.append('    call(["./ist.com", x])')
         script.append('')
