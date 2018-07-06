@@ -10,6 +10,6 @@ The basic workflow of non-uniformally sampled data reconstruction is:
 
 These four steps are carried out by hmsIST by using 6 independent scripts that perform each task along the processing pipeline. These are typicall called:
 * fid.com (conversion)
-* ft1xyz.com (permits phasing of the direct dimension) and ft1yzx.com (prepares phased data for reconstruction)
-* recon.py, ist.com and phf2pipe.com (recon.py parralelizes instances of ist.com that performs the reconstruction. phf2pipe.com reformats the data)
+* ft1xyz.com phases direct dimension) and ft1yzx.com (prepares data for reconstruction)
+* recon.py and ist.com (parralelizes instances of ist.com for reconstruction) and phf2pipe.com (reformats the data)
 * ft23.com (performs the final Fourier transformation of the 2 indirect dimensions)
