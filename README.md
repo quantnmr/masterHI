@@ -33,16 +33,21 @@ The good news is masterHI generates these scripts for you at each step. It then 
 
 We begin by converting the data from Bruker format to nmrPipe format. Bruker raw data is stored in the 'ser' file within the Bruker data directory, but in order to get frequency referencing information and certain other details, masterHI looks for acqus, acqu2s, acqu3s, puleprogram and nuslist files as well. These files must all exist in the data directory for masterHI to proceed. They should however, all be there. So to convert, move to the data directory and run:
 
-`masterHI --conv`
+```
+> masterHI --conv
+```
 
 N.B. All command line options are given with double-dashes ('--').
 
 This creates a file called 'fid.com' and executes it.
 
-Alternatively you can run the script from any directory to keep the processing out of the data directory. For example its common to create a processing directory below the data directory and work in there. For example:
+Alternatively you can run the script from any directory to keep the processing out of the data directory. For example its common to create a processing directory below the data directory and work in there. But you must indicate where the data directory is. For example:
 
 ```
-mkdir PROC
-cd PROC
-masterHI --conv
+> mkdir PROC
+> cd PROC
+> masterHI --conv --dir ../.
 ```
+#### Option: Controlling number of samples requested
+
+Sometimes you might want to use less samples than 
