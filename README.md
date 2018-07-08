@@ -33,8 +33,7 @@ The good news is masterHI generates these scripts for you at each step. It then 
 
 We begin by converting the data from Bruker format to nmrPipe format. Bruker raw data is stored in the 'ser' file within the Bruker data directory, but in order to get frequency referencing information and certain other details, masterHI looks for acqus, acqu2s, acqu3s, puleprogram and nuslist files as well. These files must all exist in the data directory for masterHI to proceed. They should however, all be there. So to convert, we run:
 
-`<addr>` element here instead.
-masterHI --conv
+`masterHI --conv`
 
 N.B. All command line options are given with double-dashes ('--').
 
