@@ -25,6 +25,17 @@ These four steps are carried out by hmsIST by using six independent scripts that
 
 ## The Good News
 
-The good news is masterHI generates these scripts for you at each step. It then executes the scripts. masterHI works from the command line so you provide command line arguments for each step. These arguments are stored between steps so they only need to be given once, unless you want to change them later during processing or reprocessing. Any options are gathered from the data directory so are automatically acquired for you.
+The good news is masterHI generates these scripts for you at each step. It then executes the scripts. masterHI works from the command line so you provide command line options or arguments for each step. These arguments are stored between steps so they only need to be given once, unless you want to change them later during processing or reprocessing. Many of these options are gathered from the data directory so are automatically acquired for you and don't need to be provided as command line arguments. You can always override these options with command line arguments.
 
 ## Example processing
+
+### Step 1: conversion
+
+We begin by converting the data from Bruker format to nmrPipe format. Bruker raw data is stored in the 'ser' file within the Bruker data directory, but in order to get frequency referencing information and certain other details, masterHI looks for acqus, acqu2s, acqu3s, puleprogram and nuslist files as well. These files must all exist in the data directory for masterHI to proceed. They should however, all be there. So to convert, we run:
+
+`<addr>` element here instead.
+masterHI --conv
+
+N.B. All command line options are given with double-dashes ('--').
+
+This creates a file called 'fid.com' and executes it.
