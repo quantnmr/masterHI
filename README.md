@@ -41,8 +41,6 @@ This creates a file called 'fid.com' and executes it.
 
 Alternatively you can run the script from any directory to keep the processing out of the data directory. For example its common to create a processing directory below the data directory and work in there. For example:
 
-`mkdir PROC`
-
-`cd PROC`
-
-`masterHI --conv`
+```mkdir PROC
+cd PROC
+masterHI --conv```
