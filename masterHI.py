@@ -169,13 +169,13 @@ class Bruker3D(object):
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
         script.append('| nmrPipe  -fn ZF -auto                       \\')
         if (triplerez == True):
-            script.append('| nmrPipe  -fn FT -neg -verb                            \\')
+            script.append('| nmrPipe  -fn FT -neg                             \\')
         elif (yACQ == '6'):
-            script.append('| nmrPipe  -fn FT -neg -verb                            \\')
+            script.append('| nmrPipe  -fn FT -neg                             \\')
         elif (yACQ == '5'):
-            script.append('| nmrPipe  -fn FT -alt -verb                            \\')
+            script.append('| nmrPipe  -fn FT -alt                             \\')
         else:
-            script.append('| nmrPipe  -fn FT -verb                            \\')
+            script.append('| nmrPipe  -fn FT                             \\')
         script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
         script.append('| nmrPipe  -fn TP \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
