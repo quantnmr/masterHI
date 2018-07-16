@@ -78,7 +78,7 @@ Reconstruction can take many command line variables but mostly what you will wan
 > masterHI --recon
 ```
 
-Briefly, this will FT and phase correct all the data transpose it to the indirect dimensions are ready for reconstruction. It will then start the reconstruction. It will automatically detect how many cpus/threads it can use and will use 100% of the resources it can. TO limit the number of concurrent processes, use the `--proc` argument:
+Briefly, this will FT and phase correct all the data transpose it to the indirect dimensions are ready for reconstruction. It will then start the reconstruction. It will automatically detect how many cpus/threads it can use and will use 100% of the resources it can. To limit the number of concurrent processes, use the `--proc` argument:
 
 ```
 > masterHI --recon --proc 2
@@ -93,6 +93,35 @@ FT       412 of 412    H
 Performing Reconstruction (recon.py / hmsist.com)
 [####----------------------------] 15.33% done
 ```
+
+Finally, it will reorder the data for the final step. It will output something like this during that step:
+
+```
+Moving from PHF to standard nmrPipe data order
+```
+
+### Step 4: Final Fourier Transform of Indirect Dimensions
+
+To complete the processing, a final FT of the indirect dimensions is needed. We do that with the following command:
+
+```
+> masterHI --ft
+```
+
+This generates a generic nmrPipe script that does window functions and zero filling with standard parameters. The necessary Fourier Transforms with various flags set like '-alt' or '-neg' are autodetected, but you should not rely on these. It will probably work in most cases, but you should check the 2D projections that are automatically created for you by the above command. They are written out as something like this:
+
+```
+Reading Projection: H/C
+Reading Projection: H/N
+Reading Projection: C/N
+Writing Projection: H.C.dat
+Writing Projection: H.N.dat
+Writing Projection: C.N.dat
+```
+
+So you would for example load the 'H.N.dat' file into nmrDraw and check that it looks correctly orientated. Same for 'H.C.dat'. Details of problems to look for and how to fix them are given below.
+
+The final reconstrcuted spectrum is written out as **3Dspectrum.dat**. This file can be directly viewed in nmrDraw as well.
 
 
 
