@@ -31,19 +31,23 @@ The good news is masterHI generates and executes these scripts. You interact wit
 
 ### Two-Step processing
 
-Now you understand the basics from above, lets do a quick 'Two-Step' process. Execute:
+The simplest way to do a reconstruction breaks down into two commands. The first command does steps 1 and 2 above, and the second command does steps 3 and 4.
+
+First Command:
 
 ```
 > masterHI --conv --phasecheck
 ```
 
-This will launch nmrDraw and show you the FIDs of the first sampled point. Use nmrDraw to find the correct phase. Then execute:
+This will launch nmrDraw and show you the FIDs of the first sampled point. Use nmrDraw to find the correct phase.
+
+Second Command:
 
 ```
 > masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
 ```
 
-Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. 
+Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero.
 
 And that is it.
 
@@ -64,6 +68,7 @@ This will fail if the following files are not in the data directory:
 * acqus
 * acqu2s
 * acqu3s
+* pulseprogram
 
 
 #### Step 2: Fourier Transform of direct dimension and phase check
@@ -146,6 +151,9 @@ The final reconstrcuted spectrum is written out as **3Dspectrum.dat**. This file
 
 
 ## Detailed Example
+
+Below is a detailed example where many of the command line options are used and explained along the way. Sorry, its wordy - but necessary to describe all the options.
+
 ### Step 1: Conversion
 
 We begin by converting the data from Bruker format to nmrPipe format. Bruker raw data is stored in the 'ser' file within the Bruker data directory, but in order to get frequency referencing information and certain other details, masterHI looks for acqus, acqu2s, acqu3s, puleprogram and nuslist files as well. These files must all exist in the data directory for masterHI to proceed. They should however, all be there. So to convert, move to the data directory and run:
@@ -158,6 +166,8 @@ N.B. All command line options are given with double-dashes ('--').
 
 This creates a file called 'fid.com' and executes it.
 
+#### Option: Doing a reconstruction in a different directory than the data directory
+
 Alternatively you can run the script from any directory to keep the processing out of the data directory. For example its common to create a processing directory below the data directory and work in there. But you must indicate where the data directory is. For example:
 
 ```
@@ -165,6 +175,24 @@ Alternatively you can run the script from any directory to keep the processing o
 > cd PROC
 > masterHI --conv --dir ..
 ```
-#### Option: Controlling number of samples requested
+#### Option: Controlling number of samples used in reconstruction
 
-Sometimes you might want to use less samples than
+Sometimes you might want to use less samples than originally requested at the start of data acquisition. There are two main reasons why you would want to do this: 1) The experiment was terminated early for some reason so not all points where acquired or 2) Acquisition is not finished yet but you want to see how its all going so far. TO be able to get a decent reconstruction under these circumstances it is best to have acquired your samples randomly. You should always do this anyway.
+
+Anyway, to limit the number of samples used, use the --nsamples argument when converting the data. For example, you originally wanted to collect 500 samples but the cryoprobe warmed up after collecting 250. Ugh - I know. But now you have a serial file with only 250 sampled points in it. No sweat, just run:
+
+```
+> masterHI --conv --nsamples 250
+```
+
+This will only convert the first 250 sampled points and will also limit the 'nuslist' file used later on during reconstruction.
+
+Now, lets say you are running a 4 day experiment with 4000 samples to be collected but want to make sure you are not wasting spectrometer time. S0, after say 12 hours you have collected only 500 samples. No problem. Again, just run:
+
+```
+> masterHI --conv --nsamples 500
+```
+
+and complete the reconstruction as usual.
+
+### Step 2: Phase correction in first dimension.
