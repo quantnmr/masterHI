@@ -123,7 +123,23 @@ So you would for example load the 'H.N.dat' file into nmrDraw and check that it 
 
 The final reconstrcuted spectrum is written out as **3Dspectrum.dat**. This file can be directly viewed in nmrDraw as well.
 
+## Two-Step processing
 
+Now you understand the basics from above, lets do a quick 'Two-Step' process. Execute:
+
+```
+> masterHI --conv --phasecheck
+```
+
+Use nmrDraw to find the correct phase. Then execute:
+
+```
+> masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
+```
+
+Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. If they have already been set by previous processing inthat directory you will have to set them to zero as their values are stored by masterHI between runs.
+
+And that is it. 
 
 ## Detailed Example
 ### Step 1: Conversion
