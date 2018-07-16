@@ -29,7 +29,27 @@ The good news is masterHI generates and executes these scripts. You interact wit
 
 ## Example processing (lets get started quickly version)
 
-### Step 1: Conversion
+### Two-Step processing
+
+Now you understand the basics from above, lets do a quick 'Two-Step' process. Execute:
+
+```
+> masterHI --conv --phasecheck
+```
+
+Use nmrDraw to find the correct phase. Then execute:
+
+```
+> masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
+```
+
+Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. If they have already been set by previous processing inthat directory you will have to set them to zero as their values are stored by masterHI between runs.
+
+And that is it.
+
+### Step by Step Processing
+
+#### Step 1: Conversion
 
 Convert the data from Bruker to nmrPipe format with:
 
@@ -46,7 +66,7 @@ This will fail if the following files are not in the data directory:
 * acqu3s
 
 
-### Step 2: Fourier Transform of direct dimension and phase check
+#### Step 2: Fourier Transform of direct dimension and phase check
 
 The first dimension is directly acquired and can be processed with a regular FT - but we must correct for the phase. To do so, execute:
 
@@ -70,7 +90,7 @@ This will redo the transformation and load the result in nmrDraw for you to view
 
 as a final check.
 
-### Step 3: Reconstruction
+#### Step 3: Reconstruction
 
 Reconstruction can take many command line variables but mostly what you will want is default or can be detected from the data directory. The simplest thing to do, which will work in probably about 95% of cases is:
 
@@ -100,7 +120,7 @@ Finally, it will reorder the data for the final step. It will output something l
 Moving from PHF to standard nmrPipe data order
 ```
 
-### Step 4: Final Fourier Transform of Indirect Dimensions
+#### Step 4: Final Fourier Transform of Indirect Dimensions
 
 To complete the processing, a final FT of the indirect dimensions is needed. We do that with the following command:
 
@@ -123,23 +143,7 @@ So you would for example load the 'H.N.dat' file into nmrDraw and check that it 
 
 The final reconstrcuted spectrum is written out as **3Dspectrum.dat**. This file can be directly viewed in nmrDraw as well.
 
-## Two-Step processing
 
-Now you understand the basics from above, lets do a quick 'Two-Step' process. Execute:
-
-```
-> masterHI --conv --phasecheck
-```
-
-Use nmrDraw to find the correct phase. Then execute:
-
-```
-> masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
-```
-
-Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. If they have already been set by previous processing inthat directory you will have to set them to zero as their values are stored by masterHI between runs.
-
-And that is it. 
 
 ## Detailed Example
 ### Step 1: Conversion
