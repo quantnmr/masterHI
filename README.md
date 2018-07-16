@@ -37,7 +37,7 @@ Now you understand the basics from above, lets do a quick 'Two-Step' process. Ex
 > masterHI --conv --phasecheck
 ```
 
-Use nmrDraw to find the correct phase. Then execute:
+This will launch nmrDraw and show you the FIDs of the first sampled point. Use nmrDraw to find the correct phase. Then execute:
 
 ```
 > masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
