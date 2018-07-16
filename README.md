@@ -187,7 +187,7 @@ Anyway, to limit the number of samples used, use the --nsamples argument when co
 
 This will only convert the first 250 sampled points and will also limit the 'nuslist' file used later on during reconstruction.
 
-Now, lets say you are running a 4 day experiment with 4000 samples to be collected but want to make sure you are not wasting spectrometer time. S0, after say 12 hours you have collected only 500 samples. No problem. Again, just run:
+Now, lets say you are running a 4 day experiment with 4000 samples to be collected but want to make sure you are not wasting spectrometer time. So, after say 12 hours you have collected only 500 samples. No problem. Again, just run:
 
 ```
 > masterHI --conv --nsamples 500
