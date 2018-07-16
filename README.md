@@ -31,15 +31,10 @@ The good news is masterHI generates and executes these scripts. You interact wit
 
 ### Step 1: Conversion
 
-In the Bruker data directory, create a processing directory and move to that directory:
-```
-> mkdir PROC
-> cd PROC
-```
+Convert the data from Bruker to nmrPipe format with:
 
-Now convert the data in the directory above (..) with:
 ```
-> masterHI --conv --dir ..
+> masterHI --conv
 ```
 
 This will fail if the following files are not in the data directory:
@@ -50,23 +45,56 @@ This will fail if the following files are not in the data directory:
 * acqu2s
 * acqu3s
 
-or if you indicate the wrong directory with the --dir argument.
 
 ### Step 2: Fourier Transform of direct dimension and phase check
 
 The first dimension is directly acquired and can be processed with a regular FT - but we must correct for the phase. To do so, execute:
+
 ```
 > masterHI --phasecheck
 ```
 
 This takes the first 4 FIDs (the first sampled point), does an FT on them and loads the result into nmrDraw. In nmrDraw you can usually find one or two FIDs out of these four with good signal and correct the phase as you would normally do so in nmrDraw. Not the phase correction. Lets say it is 39.2 for phase 0 (p0) and no phase correction for phase 1 (p1). We check we have the phases correct by executing:
+
 ```
 > masterHI --phasecheck --phase0 39.2 --phase1 0
 ```
 
 Note: you can simply not add the `--phase1` argument to make things briefer.
 
-This will redo the transformation and load the result in nmrDraw for you to view again. Make any other fine adjustments if you think they are needed.
+This will redo the transformation and load the result in nmrDraw for you to view again. Make any other fine adjustments if you think they are needed and repeat the above command. Keep in mind that if you found you needed, say, another 5 degrees correction, you should use `--phase0 44.2`, not `--phase0 5.0`. Always check that you are happy with the phase before moving on. You can simply run:
+
+```
+> masterHI --phasecheck
+```
+
+as a final check.
+
+### Step 3: Reconstruction
+
+Reconstruction can take many command line variables but mostly what you will want is default or can be detected from the data directory. The simplest thing to do, which will work in probably about 95% of cases is:
+
+```
+> masterHI --recon
+```
+
+Briefly, this will FT and phase correct all the data transpose it to the indirect dimensions are ready for reconstruction. It will then start the reconstruction. It will automatically detect how many cpus/threads it can use and will use 100% of the resources it can. TO limit the number of concurrent processes, use the `--proc` argument:
+
+```
+> masterHI --recon --proc 2
+```
+This will only use two concurrent processes.
+
+You should see an output that looks something like this:
+
+```
+Preparing Sampled Points for Full Reconstruction (prepare4recon.com)
+FT       412 of 412    H     
+Performing Reconstruction (recon.py / hmsist.com)
+[####----------------------------] 15.33% done
+```
+
+
 
 ## Detailed Example
 ### Step 1: Conversion
