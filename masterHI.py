@@ -414,42 +414,7 @@ if (args.conv): # requested a bruker to nmrpipe conversion
 
 
 
-
-if (args.phasecheck): # requested a phase correction in first dimension
-
-    if (savedargs.beenConverted):
-        data = Bruker3D(savedargs.dir)
-
-        savedargs.noEXT = args.noEXT
-
-        if (args.phase0 and args.phase1):
-            savedargs.phase0 = args.phase0
-            savedargs.phase1 = args.phase1
-            savedargs.noEXT = args.noEXT
-
-        elif (args.phase0):
-            savedargs.phase0 = args.phase0
-            savedargs.noEXT = args.noEXT
-
-        elif (args.phase1):
-            savedargs.phase1 = args.phase1
-            savedargs.noEXT = args.noEXT
-
-
-
-        data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
-
-        os.system('chmod 770 phase.com')
-        print("Transforming first Samples Point to test phases (phase.com)")
-        os.system('./phase.com')
-        os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
-        savedargs.beenPhased = True
-
-    else:
-        print('You need to Convert the Data from Bruker to nmrPipe format first')
-
-
-if (args.phase): # requested a phase correction in first dimension
+if (args.phase or args.phasecheck): # requested a phase correction in first dimension
 
     if (savedargs.beenConverted):
         data = Bruker3D(savedargs.dir)
@@ -475,6 +440,8 @@ if (args.phase): # requested a phase correction in first dimension
 
         os.system('chmod 770 phase.com')
         print("Transforming first Samples Point to test phases (phase.com)")
+        if (args.phasecheck):
+            os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
         os.system('./phase.com')
         savedargs.beenPhased = True
 
