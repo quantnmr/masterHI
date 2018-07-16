@@ -43,7 +43,7 @@ This will launch nmrDraw and show you the FIDs of the first sampled point. Use n
 > masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
 ```
 
-Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. If they have already been set by previous processing inthat directory you will have to set them to zero as their values are stored by masterHI between runs.
+Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero. 
 
 And that is it.
 
