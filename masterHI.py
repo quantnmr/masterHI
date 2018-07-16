@@ -13,6 +13,7 @@ parser.add_argument('--conv', default=False, action='store_true')
 parser.add_argument('--dir', default=False)
 parser.add_argument('--nsamples', default=False)
 parser.add_argument('--phasecheck', default=False, action='store_true')
+parser.add_argument('--phase', default=False, action='store_true')
 parser.add_argument('--phase0', default=False)
 parser.add_argument('--phase1', default=False)
 parser.add_argument('--noEXT', default=True, action='store_false')
@@ -442,6 +443,39 @@ if (args.phasecheck): # requested a phase correction in first dimension
         print("Transforming first Samples Point to test phases (phase.com)")
         os.system('./phase.com')
         os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
+        savedargs.beenPhased = True
+
+    else:
+        print('You need to Convert the Data from Bruker to nmrPipe format first')
+
+
+if (args.phase): # requested a phase correction in first dimension
+
+    if (savedargs.beenConverted):
+        data = Bruker3D(savedargs.dir)
+
+        savedargs.noEXT = args.noEXT
+
+        if (args.phase0 and args.phase1):
+            savedargs.phase0 = args.phase0
+            savedargs.phase1 = args.phase1
+            savedargs.noEXT = args.noEXT
+
+        elif (args.phase0):
+            savedargs.phase0 = args.phase0
+            savedargs.noEXT = args.noEXT
+
+        elif (args.phase1):
+            savedargs.phase1 = args.phase1
+            savedargs.noEXT = args.noEXT
+
+
+
+        data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
+
+        os.system('chmod 770 phase.com')
+        print("Transforming first Samples Point to test phases (phase.com)")
+        os.system('./phase.com')
         savedargs.beenPhased = True
 
     else:
