@@ -33,7 +33,7 @@ The good news is masterHI generates and executes these scripts. You interact wit
 
 The simplest way to do a reconstruction breaks down into two commands. The first command does steps 1 and 2 above, and the second command does steps 3 and 4.
 
-First Command:
+**First Command:**
 
 ```
 > masterHI --conv --phasecheck
@@ -41,7 +41,7 @@ First Command:
 
 This will launch nmrDraw and show you the FIDs of the first sampled point. Use nmrDraw to find the correct phase.
 
-Second Command:
+**Second Command:**
 
 ```
 > masterHI --phasecheck --phase0 xx.xx --phase1 xx.xx --recon --ft
@@ -49,7 +49,7 @@ Second Command:
 
 Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero.
 
-And that is it.
+And that is it. the '--recon' and '--ft' flags will automatically take care of the rest - but it may not do everything you want.
 
 ### Step by Step Processing
 
