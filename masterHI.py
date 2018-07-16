@@ -503,7 +503,6 @@ if (args.ft):
     if (savedargs.beenReconed == True):
         data = Bruker3D(savedargs.dir)
         savedargs.triplerez = args.triplerez
-        print(data.yACQ, data.zACQ)
         data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ)
         os.system('chmod 770 ft.com')
         os.system('./ft.com')
