@@ -29,6 +29,42 @@ The good news is masterHI generates and executes these scripts. You interact wit
 
 ## Example processing (lets get started quickly version)
 
+### The four steps and the four major command line arguments
+
+Each step of processing is executed when the corresponding command line argument is given.
+
+For step one - conversion
+
+```
+> masterHI --conv
+```
+
+For step two - Phasing
+
+```
+> masterHI --phase
+```
+
+or
+
+```
+> masterHI --phasecheck # launches nmrDraw so you can visually check/correct the phase
+```
+For step three - Reconstruction
+
+```
+> masterHI --recon
+```
+
+For step four - Final Fourier Transform
+
+```
+> masterHI --ft
+```
+
+Any combination of these flags can be used and all have associated additional flags that help set needed variables. Lets see an quick two-step example below.
+
+
 ### Two-Step processing
 
 The simplest way to do a reconstruction breaks down into two commands. The first command does steps 1 and 2 above, and the second command does steps 3 and 4.
@@ -49,9 +85,11 @@ This will launch nmrDraw and show you the FIDs of the first sampled point. Use n
 
 Where xx.xx are the correct phases. Keep in mind, you can drop the `--phase1` or even the `--phase0` if either one is actually zero.
 
-And that is it. the '--recon' and '--ft' flags will automatically take care of the rest - but it may not do everything you want.
+And that is it. the '--recon' and '--ft' flags will automatically take care of the rest - but it may not do everything you want. Check results, especially the 2D projection planes and see if additional variables may need to be set.
 
 ### Step by Step Processing
+
+Below we outline a straightforward reconstruction, broken down into each of the four steps with additional explanations of certain variables.
 
 #### Step 1: Conversion
 
