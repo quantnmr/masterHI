@@ -184,13 +184,13 @@ Writing Projection: C.N.dat
 
 So you would for example load the 'H.N.dat' file into nmrDraw and check that it looks correctly orientated. Same for 'H.C.dat'. Details of problems to look for and how to fix them are given below.
 
-The final reconstrcuted spectrum is written out as **3Dspectrum.dat**. This file can be directly viewed in nmrDraw as well.
+The final reconstructed spectrum is written out as **3Dspectrum.dat**. This file can be directly viewed in nmrDraw as well.
 
 
 
 ## Detailed Example
 
-Below is a detailed example where many of the command line options are used and explained along the way. Sorry, its wordy - but necessary to describe all the options.
+Below is a detailed example where many of the command line options that can be used along the way with explanations. Sorry, its wordy - but necessary to describe all the options.
 
 ### Step 1: Conversion
 
