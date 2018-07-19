@@ -225,12 +225,42 @@ Anyway, to limit the number of samples used, use the --nsamples argument when co
 
 This will only convert the first 250 sampled points and will also limit the 'nuslist' file used later on during reconstruction.
 
-Now, lets say you are running a 4 day experiment with 4000 samples to be collected but want to make sure you are not wasting spectrometer time. So, after say 12 hours you have collected only 500 samples. No problem. Again, just run:
+Now, lets say you are running a 4 day NOESY experiment with 4000 samples to be collected but want to make sure you are not wasting spectrometer time. So, after say 12 hours you have collected only 500 samples. No problem. Again, just run:
 
 ```
 > masterHI --conv --nsamples 500
 ```
 
-and complete the reconstruction as usual.
+and complete the reconstruction as usual. Hopefully its looking good after 500 sampled points.
+
+To use all the samples requested when you started acquisition use:
+
+```
+> masterHI --conv --nsamples all
+```
+
+##### N.B. --nsamples is a 'saved' option. If you run masterHI again in the same directory it will assume you want to use the same number of samples as the last time unless you reset it. If you never use this argument then all the samples is assumed. 
 
 ### Step 2: Phase correction in first dimension.
+
+hmsIST requires that the direct dimension be transformed first. Usually at this stage you are not sure of the phase correction required in the direct dimension either. So, in step two, we will discover the correct phase correction and ultimately apply it to all the data converted above.
+
+The best way to start is by doing an FT and looking at the result in nmrDraw by using the 'phasecheck' option.
+
+```
+> masterHI --phasecheck
+```
+
+This will automatically launch nmrDraw for you and show you the first four FIDs (first sampled hypercomplex point). Use nmrDraw to determine the appropriate phase correction. Solvent suppression will be automatically applied. If you don't want solvent suppression, run:
+
+```
+> masterHI --phasecheck --noSOL
+```
+
+Also, the direct dimension is automatically cut in half with the left side extracted (EXT) and displayed. masterHI usually assumes you ran an amide detected experiment. If you don't want to cut the spectrum in half because it's a 13C edited NOESY etc, run:
+
+```
+> masterHI --phasecheck --noEXT
+```
+
+You can also add the '--noSOL' argument to the above line, say because your 13C edited NOESY was run in D2O and you don't want to remove any HA signals that are in the vicinity of the water signal.
