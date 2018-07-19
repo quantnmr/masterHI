@@ -492,6 +492,9 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
         if (args.sthr and args.ethr):
             savedargs.sthr = args.sthr
             savedargs.ethr = args.ethr
+        else:
+            savedargs.sthr = 0.98
+            savedargs.ethr = 0.98
 
 
 
