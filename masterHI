@@ -32,7 +32,7 @@ parser.add_argument('--xP1', default=False)
 parser.add_argument('--yP1', default=False)
 parser.add_argument('--triplerez', default=False, action='store_true')
 parser.add_argument('--xyz', default=False, action='store_true')
-parser.add_arguemnt('--clean', default=False, action='store_true')
+parser.add_argument('--clean', default=False, action='store_true')
 
 
 
