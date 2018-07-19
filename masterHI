@@ -32,6 +32,7 @@ parser.add_argument('--xP1', default=False)
 parser.add_argument('--yP1', default=False)
 parser.add_argument('--triplerez', default=False, action='store_true')
 parser.add_argument('--xyz', default=False, action='store_true')
+parser.add_arguemnt('--clean', default=False, action='store_true')
 
 
 
@@ -556,6 +557,13 @@ if (args.ft):
 
     else:
         print("You need to do a reconstruction of the data before the final FT of the reconstructed dimensons")
+
+
+if (args.clean):
+    response = raw_input("Are you sure you want to delete all processing files, except for projections and the file spectrum? (Yes/No) ")
+    if respone = 'Yes':
+        os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
+
 
 file = open('.masterHI.config','wb')
 pickle.dump(savedargs, file)
