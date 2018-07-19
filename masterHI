@@ -561,7 +561,7 @@ if (args.ft):
 
 if (args.clean):
     response = raw_input("Are you sure you want to delete all processing files, except for projections and the file spectrum? (Yes/No) ")
-    if respone = 'Yes':
+    if (response == 'Yes'):
         os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
 
 
