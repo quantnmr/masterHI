@@ -26,6 +26,10 @@ parser.add_argument('--recon', default=False, action='store_true')
 parser.add_argument('--sthr', default=False)
 parser.add_argument('--ethr', default=False)
 parser.add_argument('--ft', default=False, action='store_true')
+parser.add_argument('--xP0', default=False)
+parser.add_argument('--yP0', default=False)
+parser.add_argument('--xP1', default=False)
+parser.add_argument('--yP1', default=False)
 parser.add_argument('--triplerez', default=False, action='store_true')
 parser.add_argument('--xyz', default=False, action='store_true')
 
@@ -164,7 +168,7 @@ class Bruker3D(object):
             outfile.write("%s\n" % item)
         outfile.close()
 
-    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False):
+    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, xP0=False, xP1=False, yP0=False, yP1=False):
 
         script = []
         script.append('#!/bin/csh')
@@ -180,7 +184,14 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn FT -alt                             \\')
         else:
             script.append('| nmrPipe  -fn FT                             \\')
-        script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
+        if (xP0 and xP1):
+                script.append('| nmrPipe  -fn PS -p0 '+str(xP0)+' -p1 '+str(xP1)+' -di              \\')
+        elif (xP0 and not xP1):
+                script.append('| nmrPipe  -fn PS -p0 '+str(xP0)+' -p1 0.0 -di              \\')
+        elif (not xP0 and xP1):
+                script.append('| nmrPipe  -fn PS -p0 0.0 -p1 '+str(xP1)+' -di              \\')
+        else:
+            script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
         script.append('| nmrPipe  -fn TP \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
         script.append('| nmrPipe  -fn ZF -auto  \\')
@@ -381,6 +392,10 @@ class Options(object):
         self.proc = False
         self.triplerez = False
         self.xyz = False
+        self.xP0 = False
+        self.yP0 = False
+        self.xP1 = False
+        self.yP1 = False
 
         self.beenConverted = False
         self.beenPhased = False
@@ -521,7 +536,12 @@ if (args.ft):
         data = Bruker3D(savedargs.dir)
         savedargs.triplerez = args.triplerez
         savedargs.xyz = args.xyz
-        data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, xyz=savedargs.xyz)
+        savedargs.xP0 = args.xP0
+        savedargs.xP1 = args.xP1
+        savedargs.yP0 = args.yP0
+        savedargs.yP1 = args.yP1
+
+        data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, xyz=savedargs.xyz, xP0=savedargs.xP0, yP0=savedargs.yP0, xP1=savedargs.xP1, yP1=savedargs.yP1)
         os.system('chmod 770 ft.com')
         os.system('./ft.com')
 
