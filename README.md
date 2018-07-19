@@ -239,7 +239,7 @@ To use all the samples requested when you started acquisition use:
 > masterHI --conv --nsamples all
 ```
 
-##### N.B. --nsamples is a 'saved' option. If you run masterHI again in the same directory it will assume you want to use the same number of samples as the last time unless you reset it. If you never use this argument then all the samples is assumed. 
+##### N.B. --nsamples is a 'saved' option. If you run masterHI again in the same directory without this argument it will assume you want to use the same number of samples as the last time unless you reset it. If you never use this argument then all the samples will be used.  
 
 ### Step 2: Phase correction in first dimension.
 
