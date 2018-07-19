@@ -16,8 +16,8 @@ parser.add_argument('--phasecheck', default=False, action='store_true')
 parser.add_argument('--phase', default=False, action='store_true')
 parser.add_argument('--phase0', default=False)
 parser.add_argument('--phase1', default=False)
-parser.add_argument('--noEXT', default=True, action='store_false')
-parser.add_argument('--noSOL', default=True, action='store_false')
+parser.add_argument('--noEXT', default=False, action='store_true')
+parser.add_argument('--noSOL', default=False, action='store_true')
 parser.add_argument('--proc', default=False)
 parser.add_argument('--itr', default=False)
 parser.add_argument('--xN', default=False)
@@ -150,7 +150,7 @@ class Bruker3D(object):
 
 
 
-    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=True, sol=True):
+    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=False, sol=False):
 
         script = []
         script.append('#!/bin/csh')
@@ -234,7 +234,7 @@ class Bruker3D(object):
 
 
 
-    def genPrepare(self, filename, phase0=0, phase1=0, ext=True, sol=True):
+    def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False):
 
         script = []
         script.append('#!/bin/csh')
