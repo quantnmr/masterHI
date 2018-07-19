@@ -27,6 +27,7 @@ parser.add_argument('--sthr', default=False)
 parser.add_argument('--ethr', default=False)
 parser.add_argument('--ft', default=False, action='store_true')
 parser.add_argument('--triplerez', default=False, action='store_true')
+parser.add_argument('--xyz', default=False, action='store_true')
 
 
 
@@ -163,7 +164,7 @@ class Bruker3D(object):
             outfile.write("%s\n" % item)
         outfile.close()
 
-    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False):
+    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False):
 
         script = []
         script.append('#!/bin/csh')
@@ -198,6 +199,9 @@ class Bruker3D(object):
         script.append('| nmrPipe  -fn ZTP \\')
         script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
         script.append('> 3Dspectrum.dat')
+        if (xyz == True):
+            script.append('nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3')
+            script.append('echo "wrote xyz data out to rec/data%04d.ft3"')
         script.append('proj3D.tcl -in 3Dspectrum.dat')
 
 
@@ -376,6 +380,7 @@ class Options(object):
         self.ethr = False
         self.proc = False
         self.triplerez = False
+        self.xyz = False
 
         self.beenConverted = False
         self.beenPhased = False
@@ -515,7 +520,8 @@ if (args.ft):
     if (savedargs.beenReconed == True):
         data = Bruker3D(savedargs.dir)
         savedargs.triplerez = args.triplerez
-        data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ)
+        savedargs.xyz = args.xyz
+        data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, xyz=savedargs.xyz)
         os.system('chmod 770 ft.com')
         os.system('./ft.com')
 
