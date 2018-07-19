@@ -203,7 +203,14 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn FT -alt -verb                            \\')
         else:
             script.append('| nmrPipe  -fn FT -verb                       \\')
-        script.append('| nmrPipe  -fn PS -p0 0  -p1 0.0 -di              \\')
+        if (yP0 and yP1):
+                script.append('| nmrPipe  -fn PS -p0 '+str(yP0)+' -p1 '+str(yP1)+' -di              \\')
+        elif (yP0 and not yP1):
+                script.append('| nmrPipe  -fn PS -p0 '+str(yP0)+' -p1 0.0 -di              \\')
+        elif (not yP0 and yP1):
+                script.append('| nmrPipe  -fn PS -p0 0.0 -p1 '+str(yP1)+' -di              \\')
+        else:
+            script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
         script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
         script.append('| nmrPipe  -fn TP \\')
         script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
