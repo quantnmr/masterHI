@@ -17,6 +17,7 @@ parser.add_argument('--phase', default=False, action='store_true')
 parser.add_argument('--phase0', default=False)
 parser.add_argument('--phase1', default=False)
 parser.add_argument('--noEXT', default=True, action='store_false')
+parser.add_argument('--noSOL', default=True, action='store_false')
 parser.add_argument('--proc', default=False)
 parser.add_argument('--itr', default=False)
 parser.add_argument('--xN', default=False)
@@ -149,13 +150,14 @@ class Bruker3D(object):
 
 
 
-    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=True):
+    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=True, sol=True):
 
         script = []
         script.append('#!/bin/csh')
         script.append('# hmsIST FT along direct dimension for first samples point only')
         script.append('nmrPipe -in fid/data001.fid       \\')
-        script.append('| nmrPipe -fn SOL \\')
+        if (sol==True):
+            script.append('| nmrPipe -fn SOL \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         script.append('| nmrPipe  -fn ZF -auto                         \\')
         script.append('| nmrPipe  -fn FT -verb                             \\')
@@ -232,13 +234,14 @@ class Bruker3D(object):
 
 
 
-    def genPrepare(self, filename, phase0=0, phase1=0, ext=True):
+    def genPrepare(self, filename, phase0=0, phase1=0, ext=True, sol=True):
 
         script = []
         script.append('#!/bin/csh')
         script.append('# hmsIST FT along direct dimension and prepare for reconstruction')
         script.append('xyz2pipe -in fid/data%03d.fid -x \\')
-        script.append('| nmrPipe -fn SOL \\')
+        if (sol==True):
+            script.append('| nmrPipe -fn SOL \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         script.append('| nmrPipe  -fn ZF -auto                         \\')
         script.append('| nmrPipe  -fn FT -verb                             \\')
@@ -391,6 +394,7 @@ class Options(object):
         self.phase1 = 0
         self.nsamples = 0
         self.noEXT = False
+        self.noSOL = False
         self.itr = False
         self.autoN = False
         self.xN = False
@@ -452,6 +456,7 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
         data = Bruker3D(savedargs.dir)
 
         savedargs.noEXT = args.noEXT
+        savedargs.noSOL = args.noSOL
 
         if (args.phase0 and args.phase1):
             savedargs.phase0 = args.phase0
@@ -468,7 +473,7 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
 
 
 
-        data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
+        data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT, sol=savedargs.noSOL)
 
         os.system('chmod 770 phase.com')
         print("Transforming first Samples Point to test phases (phase.com)")
@@ -499,7 +504,7 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
 
 
 
-        data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
+        data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT, sol=savedargs.noSOL)
         os.system('chmod 770 prepare4recon.com')
         print("Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
         os.system('./prepare4recon.com')
