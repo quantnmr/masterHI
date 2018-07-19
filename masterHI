@@ -23,6 +23,8 @@ parser.add_argument('--xN', default=False)
 parser.add_argument('--yN', default=False)
 parser.add_argument('--autoN', default=False, action='store_true')
 parser.add_argument('--recon', default=False, action='store_true')
+parser.add_argument('--sthr', default=False)
+parser.add_argument('--ethr', default=False)
 parser.add_argument('--ft', default=False, action='store_true')
 parser.add_argument('--triplerez', default=False, action='store_true')
 
@@ -230,7 +232,7 @@ class Bruker3D(object):
             outfile.write("%s\n" % item)
         outfile.close()
 
-    def genRecon(self, filenames, proc=0, itr=0, xN=0, yN=0):
+    def genRecon(self, filenames, proc=0, itr=0, xN=0, yN=0, sthr=0.98, ethr=0.98):
         # lets make the recon.py file first
         script = []
         script.append('#!/usr/bin/env python')
@@ -285,13 +287,13 @@ class Bruker3D(object):
         script.append('')
         #script.append('echo $out')
         if (itr == 0 and xN == 0 and yN == 0):
-            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr 250 -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr 250 -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
         elif (itr != 0 and xN == 0 and yN == 0):
-            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr '+str(itr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr '+str(itr)+' -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
         elif (itr == 0 and xN != 0 and yN != 0):
-            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr 250 -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr 250 -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
         elif (itr != 0 and xN != 0 and yN != 0):
-            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr '+str(itr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr '+str(itr)+' -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
         outfile = open(filenames[1], 'w')
         for item in script:
             outfile.write("%s\n" % item)
@@ -370,6 +372,8 @@ class Options(object):
         self.autoN = False
         self.xN = False
         self.yN = False
+        self.sthr = False
+        self.ethr = False
         self.proc = False
         self.triplerez = False
 
@@ -456,7 +460,14 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
         savedargs.noEXT = args.noEXT
         if (args.nsamples):
             savedargs.nsamples = args.nsamples
-        print(savedargs.nsamples)
+
+        if (args.sthr and args.ethr):
+            savedargs.sthr = args.sthr
+            savedargs.ethr = args.ethr
+
+
+
+
         data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT)
         os.system('chmod 770 prepare4recon.com')
         print("Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
@@ -474,7 +485,8 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
             savedargs.xN = 0
             savedargs.yN = 0
 
-        data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=savedargs.proc, itr=savedargs.itr, xN=savedargs.xN, yN=savedargs.yN)
+        data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=savedargs.proc, itr=savedargs.itr,
+                        xN=savedargs.xN, yN=savedargs.yN, sthr=savedargs.sthr, ethr=savedargs.ethr)
         os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
         print("Performing Reconstruction (recon.py / hmsist.com)")
 
