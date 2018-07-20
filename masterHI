@@ -156,13 +156,13 @@ class Bruker3D(object):
         script.append('#!/bin/csh')
         script.append('# hmsIST FT along direct dimension for first samples point only')
         script.append('nmrPipe -in fid/data001.fid       \\')
-        if (sol==True):
+        if (sol==False):
             script.append('| nmrPipe -fn SOL \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         script.append('| nmrPipe  -fn ZF -auto                         \\')
         script.append('| nmrPipe  -fn FT -verb                             \\')
         script.append('| nmrPipe  -fn PS -p0 {} -p1 {} -di              \\'.format(phase0, phase1))
-        if (ext==True):
+        if (ext==False):
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
         script.append('>data001.dat')
 
@@ -240,13 +240,13 @@ class Bruker3D(object):
         script.append('#!/bin/csh')
         script.append('# hmsIST FT along direct dimension and prepare for reconstruction')
         script.append('xyz2pipe -in fid/data%03d.fid -x \\')
-        if (sol==True):
+        if (sol==False):
             script.append('| nmrPipe -fn SOL \\')
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         script.append('| nmrPipe  -fn ZF -auto                         \\')
         script.append('| nmrPipe  -fn FT -verb                             \\')
         script.append('| nmrPipe  -fn PS -p0 {} -p1 {} -di              \\'.format(phase0, phase1))
-        if (ext==True):
+        if (ext==False):
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
 
         script.append('| pipe2xyz -ov -out yzx/data%03d.dat -z')
