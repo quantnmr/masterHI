@@ -476,10 +476,11 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
         data.genDirectPhaseCheck('phase.com', phase0=savedargs.phase0, phase1=savedargs.phase1, ext=savedargs.noEXT, sol=savedargs.noSOL)
 
         os.system('chmod 770 phase.com')
+        os.system('./phase.com')
         print("Transforming first Samples Point to test phases (phase.com)")
         if (args.phasecheck):
             os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
-        os.system('./phase.com')
+        
         savedargs.beenPhased = True
 
     else:
