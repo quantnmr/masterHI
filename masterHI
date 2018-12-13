@@ -265,7 +265,7 @@ class Bruker3D(object):
         script.append('')
         script.append('from __future__ import print_function')
         script.append('from multiprocessing import Pool')
-        script.append('import curses')
+        script.append('# import curses')
         script.append('from subprocess import call')
         script.append('import sys')
         script.append('from os import listdir')
