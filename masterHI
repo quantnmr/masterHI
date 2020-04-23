@@ -86,8 +86,8 @@ class Bruker3D(object):
                         self.grpdly = line.split()[1]
                     if '##$TD= ' in line:
                         self.xN = line.split()[1]
-                    if '##$WBST= ' in line:
-                        self.xT = line.split()[1]
+                    #if '##$WBST= ' in line:
+                    #    self.xT = line.split()[1]
                     if '##$SW_h= ' in line:
                         self.xSW = line.split()[1]
                     if '##$SFO1= ' in line:
@@ -96,8 +96,9 @@ class Bruker3D(object):
                         self.xO1 = line.split()[1]
                     if '##$BF1= ' in line:
                         self.xBF1 = line.split()[1]
-                    self.xMODE = 'DQD'
-                    self.xLAB = 'H'
+                self.xT = str(int(int(self.xN)/2))
+                self.xMODE = 'DQD'
+                self.xLAB = 'H'
 
             # now we get 'y' dimension stuff
             with open(self.ac2) as fp:
