@@ -86,8 +86,8 @@ class Bruker3D(object):
                         self.grpdly = line.split()[1]
                     if '##$TD= ' in line:
                         self.xN = line.split()[1]
-                    if '##$WBST= ' in line:
-                        self.xT = line.split()[1]
+                    #if '##$WBST= ' in line:
+                    #    self.xT = line.split()[1]
                     if '##$SW_h= ' in line:
                         self.xSW = line.split()[1]
                     if '##$SFO1= ' in line:
@@ -96,8 +96,9 @@ class Bruker3D(object):
                         self.xO1 = line.split()[1]
                     if '##$BF1= ' in line:
                         self.xBF1 = line.split()[1]
-                    self.xMODE = 'DQD'
-                    self.xLAB = 'H'
+                self.xT = str(int(int(self.xN)/2))
+                self.xMODE = 'DQD'
+                self.xLAB = 'H'
 
             # now we get 'y' dimension stuff
             with open(self.ac2) as fp:
@@ -265,7 +266,7 @@ class Bruker3D(object):
         script.append('')
         script.append('from __future__ import print_function')
         script.append('from multiprocessing import Pool')
-        script.append('import curses')
+        script.append('# import curses')
         script.append('from subprocess import call')
         script.append('import sys')
         script.append('from os import listdir')
@@ -482,6 +483,10 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
         os.system('./phase.com')
         if (args.phasecheck):
             os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
+<<<<<<< HEAD
+=======
+        
+>>>>>>> 2be8e0cbe5c9bf9a4959f601008d703186eb6044
         savedargs.beenPhased = True
 
     else:

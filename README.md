@@ -251,13 +251,17 @@ The best way to start is by doing an FT and looking at the result in nmrDraw by 
 > masterHI --phasecheck
 ```
 
-This will automatically launch nmrDraw for you and show you the first four FIDs (first sampled hypercomplex point). Use nmrDraw to determine the appropriate phase correction. Solvent suppression will be automatically applied. If you don't want solvent suppression, run:
+This will automatically launch nmrDraw for you and show you the first four FIDs (first sampled hypercomplex point). Use nmrDraw to determine the appropriate phase correction. Solvent suppression will be automatically applied.
+
+#### Option: If you don't want solvent suppression, run:
 
 ```
 > masterHI --phasecheck --noSOL
 ```
 
-Also, the direct dimension is automatically cut in half with the left side extracted (EXT) and displayed. masterHI usually assumes you ran an amide detected experiment. If you don't want to cut the spectrum in half because it's a 13C edited NOESY etc, run:
+Also, the direct dimension is automatically cut in half with the left side extracted (EXT) and displayed. masterHI usually assumes you ran an amide detected experiment.
+
+#### Option: If you don't want to cut the spectrum in half because it's a 13C edited NOESY etc, run:
 
 ```
 > masterHI --phasecheck --noEXT
