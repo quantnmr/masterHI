@@ -483,10 +483,6 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
         os.system('./phase.com')
         if (args.phasecheck):
             os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
-<<<<<<< HEAD
-=======
-        
->>>>>>> 2be8e0cbe5c9bf9a4959f601008d703186eb6044
         savedargs.beenPhased = True
 
     else:
