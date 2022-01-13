@@ -3,6 +3,7 @@ from __future__ import print_function
 import os.path
 import argparse
 import pickle
+import math
 
 
 
@@ -85,7 +86,8 @@ class Bruker3D(object):
                     if 'GRPDLY' in line:
                         self.grpdly = line.split()[1]
                     if '##$TD= ' in line:
-                        self.xN = line.split()[1]
+                        self.td = line.split()[1]
+                        self.xN = math.ceil(float(self.td)/256)*256
                     #if '##$WBST= ' in line:
                     #    self.xT = line.split()[1]
                     if '##$SW_h= ' in line:
@@ -96,7 +98,7 @@ class Bruker3D(object):
                         self.xO1 = line.split()[1]
                     if '##$BF1= ' in line:
                         self.xBF1 = line.split()[1]
-                self.xT = str(int(int(self.xN)/2))
+                self.xT = str(int(int(self.td)/2))
                 self.xMODE = 'DQD'
                 self.xLAB = 'H'
 
