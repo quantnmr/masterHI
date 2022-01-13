@@ -272,6 +272,8 @@ class Bruker3D(object):
         script.append('from os.path import isfile, join')
         script.append('from os import walk')
         script.append('')
+        script.append('if len(sys.argv) == 1:')
+        script.append('    sys.argv.append(\'yzx/\')')
         script.append('onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]')
         script.append('onlyfiles.sort()')
         script.append('num=len(onlyfiles)')
@@ -477,9 +479,9 @@ if (args.phase or args.phasecheck): # requested a phase correction in first dime
 
         os.system('chmod 770 phase.com')
         print("Transforming first Samples Point to test phases (phase.com)")
+        os.system('./phase.com')
         if (args.phasecheck):
             os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
-        os.system('./phase.com')
         savedargs.beenPhased = True
 
     else:
