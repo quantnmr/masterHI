@@ -43,7 +43,6 @@ parser.add_argument('--clean', default=False, action='store_true')
 
 
 args = parser.parse_args()
-print(args)
 
 
 class Bruker3D(object):
@@ -105,7 +104,13 @@ class Bruker3D(object):
                         self.xBF1 = line.split()[1]
                 self.xT = str(int(int(self.td)/2))
                 self.xMODE = 'DQD'
-                self.xLAB = 'H'
+                ratio = float(self.xBF1)/float(self.xOBS)
+                if ratio > 0.9 and ratio < 1.1:
+                    self.xLAB = 'H_x'
+                elif ratio > 3.5 and ratio < 4.5:
+                    self.xLAB = 'C_x'
+                elif ratio > 9 and ratio < 11:
+                    self.xLAB = 'N_x'
 
             # now we get 'y' dimension stuff
             with open(self.ac2) as fp:
@@ -124,10 +129,17 @@ class Bruker3D(object):
                         self.yBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.yACQ = line.split()[1]
-                    self.yN = 4
-                    self.yT = 2
-                    self.yMODE = 'Real'
-                    self.yLAB = 'N'
+                self.yN = 4
+                self.yT = 2
+                self.yMODE = 'Real'
+                ratio = float(self.xBF1)/float(self.yOBS)
+                if ratio > 0.9 and ratio < 1.1:
+                    self.yLAB = 'H_y'
+                elif ratio > 3.5 and ratio < 4.5:
+                    self.yLAB = 'C_y'
+                elif ratio > 9 and ratio < 11:
+                    self.yLAB = 'N_y'
+                
 
             with open(self.ac3) as fp:
                 for line in fp:
@@ -145,11 +157,17 @@ class Bruker3D(object):
                         self.zBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.zACQ = line.split()[1]
-                    self.zN = 0 #sum(1 for line in open(self.dir+'/nuslist'))
-                    self.zT = 2
-                    self.zMODE = 'Real'
-                    self.zLAB = 'C'
-
+                self.zN = 0 #sum(1 for line in open(self.dir+'/nuslist'))
+                self.zT = 2
+                self.zMODE = 'Real'
+                ratio = float(self.xBF1)/float(self.zOBS)
+                if ratio > 0.9 and ratio < 1.1:
+                    self.zLAB = 'H_z'
+                elif ratio > 3.5 and ratio < 4.5:
+                    self.zLAB = 'C_z'
+                elif ratio > 9 and ratio < 11:
+                    self.zLAB = 'N_z'
+                
             self.xCAR = float(self.xO1) / float(self.xBF1)
             self.yCAR = float(self.yO1) / float(self.yBF1)
             self.zCAR = float(self.zO1) / float(self.zBF1)
