@@ -23,7 +23,6 @@ parser.add_argument('--EXT_xn', default=False)
 parser.add_argument('--noSOL', default=False, action='store_true')
 parser.add_argument('--proc', default=False)
 parser.add_argument('--itr', default=False)
-parser.add_argument('--xN', default=False)
 parser.add_argument('--yN', default=False)
 parser.add_argument('--autoN', default=False, action='store_true')
 parser.add_argument('--recon', default=False, action='store_true')
@@ -106,8 +105,7 @@ class Bruker2D(object):
                     if '##$FnMODE= ' in line:
                         self.yACQ = line.split()[1]
                         self.yMODE = self.acqDict[int(self.yACQ)]
-                self.yN = 4
-                self.yT = 2
+                
                 ratio = float(self.xBF1) / float(self.yOBS)
                 if ratio > 0.9 and ratio < 1.1:
                     self.yLAB = 'H_y'
@@ -128,8 +126,8 @@ class Bruker2D(object):
             self.nsamples = sum(1 for _ in open(f'{self.dir}/nuslist'))
         else:
             self.nsamples = ns
-        self.yN = self.nsamples
-        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}        \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, self.yN*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
+        self.yconvN = self.nsamples
+        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}        \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, int(self.yconvN)*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yconvN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
 
         with open(filename, 'w') as outfile:
             for item in script:
@@ -149,7 +147,7 @@ class Options(object):
         self.noSOL = False
         self.itr = False
         self.autoN = False
-        self.xN = False
+        self.yN = False
         self.sthr = False
         self.ethr = False
         self.proc = False
@@ -182,7 +180,7 @@ if args.conv: # requested a bruker to nmrpipe conversion
     data = Bruker2D(savedargs.dir)
     if args.nsamples:
         savedargs.nsamples = args.nsamples
-        r = data.genConversion('convert.com', ns=savedargs.nsamples)
+        r = data.genConversion('convert.com', ns=int(savedargs.nsamples))
     else:
         r = data.genConversion('convert.com')
 
@@ -215,8 +213,8 @@ if args.recon: # requested a reconstruction of the data
         savedargs.proc = args.proc
     if (args.itr):
         savedargs.itr = args.itr
-    if (args.xN and args.yN):
-        savedargs.xN = args.xN
+    if args.yN:
+        savedargs.yN = args.yN
 
     if (args.autoN):
         savedargs.autoN = args.autoN
@@ -241,8 +239,11 @@ if args.recon: # requested a reconstruction of the data
 
     else:
         script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-    script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -autoN 1 -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
-
+    
+    if args.yN:
+        script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -xN {args.yN} -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
+    else:
+        script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -autoN 1 -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
     if args.yP0 and args.yP1:
         script.append(f'| nmrPipe  -fn PS -p0 {str(args.yP0)} -p1 {str(args.yP1)}' + ' -di              \\')
 
