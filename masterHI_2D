@@ -60,6 +60,15 @@ class Bruker2D(object):
             with open(self.ac1) as fp:
                 self.grpdly = 0
                 for line in fp:
+                    if 'DTYPA' in line:
+                        self.dtypa = int(line.split()[1])
+                        if self.dtypa == 1:
+                            self.datatypeconversion = '-noi2f'
+                        elif self.dtypa == 2:
+                            self.datatypeconversion = '-ws 8 -noi2f'
+                        elif self.dtypa == 0:
+                            self.datatypeconversion = ''
+                        
                     if 'BYTORDA' in line:
                         byteorder = line.split()[-1]
                         if byteorder == '1':
@@ -127,7 +136,7 @@ class Bruker2D(object):
         else:
             self.nsamples = ns
         self.yconvN = self.nsamples
-        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}        \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, int(self.yconvN)*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yconvN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
+        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}  {self.datatypeconversion}      \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, int(self.yconvN)*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yconvN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
 
         with open(filename, 'w') as outfile:
             for item in script:

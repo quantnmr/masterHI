@@ -66,6 +66,14 @@ class Bruker3D(object):
         if self.valid:
             with open(self.ac1) as fp:
                 for line in fp:
+                    if 'DTYPA' in line:
+                        self.dtypa = int(line.split()[1])
+                        if self.dtypa == 1:
+                            self.datatypeconversion = '-noi2f'
+                        elif self.dtypa == 2:
+                            self.datatypeconversion = '-ws 8 -noi2f'
+                        elif self.dtypa == 0:
+                            self.datatypeconversion = ''
                     if 'BYTORDA' in line:
                         byteorder = line.split()[-1]
                         if byteorder == '1':
@@ -297,7 +305,7 @@ class Bruker3D(object):
         else:
             self.nsamples = ns
         self.zN = self.nsamples
-        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}        \\', '  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN, self.yN, self.zN), '  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT, self.yT, self.zT), '  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE), '  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5), round(float(self.zSW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5), round(float(self.zOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5), round(float(self.zCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB, self.yLAB, self.zLAB), '  -ndim              3   -aq2D        Complex                        \\']
+        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}    {self.datatypeconversion}    \\', '  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN, self.yN, self.zN), '  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT, self.yT, self.zT), '  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE), '  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5), round(float(self.zSW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5), round(float(self.zOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5), round(float(self.zCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB, self.yLAB, self.zLAB), '  -ndim              3   -aq2D        Complex                        \\']
 
         if self.t2EA == True:
             script.append('| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr                \\')
