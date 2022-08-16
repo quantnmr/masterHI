@@ -623,6 +623,7 @@ if (args.ft):
         savedargs.yP1 = args.yP1
 
         data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, xyz=savedargs.xyz, xP0=savedargs.xP0, yP0=savedargs.yP0, xP1=savedargs.xP1, yP1=savedargs.yP1)
+        print("Performing Indirect Fourier Transforms (ft.com)")
         os.system('chmod 770 ft.com')
         os.system('./ft.com')
 
