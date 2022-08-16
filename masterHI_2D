@@ -240,6 +240,14 @@ if args.recon: # requested a reconstruction of the data
     else:
         script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
     
+    if args.EXT_L:
+        script.append('| nmrPipe  -fn EXT -left -sw           \\')
+    elif args.EXT_R:
+        script.append('| nmrPipe  -fn EXT -right -sw          \\')
+    elif args.EXT_x1:
+        script.append(f'| nmrPipe  -fn EXT -x1 {args.EXT_x1}ppm -xn {args.EXT_xn}ppm -sw             \\')
+
+
     if args.yN:
         script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -xN {args.yN} -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
     else:
