@@ -149,28 +149,23 @@ class Bruker3D(object):
         ext_r = ext[1]
         ext_x1 = ext[2]
         ext_xn = ext[3]
-        script = []
-        script.append('#!/bin/csh')
-        script.append('# hmsIST FT along direct dimension for first samples point only')
-        script.append('nmrPipe -in fid/data001.fid       \\')
-        if (sol==False):
-            script.append('| nmrPipe -fn SOL \\')
-        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
-        script.append('| nmrPipe  -fn ZF -auto                         \\')
-        script.append('| nmrPipe  -fn FT -verb                             \\')
-        script.append('| nmrPipe  -fn PS -p0 {} -p1 {} -di              \\'.format(phase0, phase1))
-        if (ext_l):
-            script.append('| nmrPipe  -fn EXT -left -sw           \\')
-        elif (ext_r):
-            script.append('| nmrPipe  -fn EXT -right -sw          \\')
-        elif (ext_x1):
-            script.append('| nmrPipe  -fn EXT -x1 {}ppm -xn {}ppm -sw             \\'.format(ext_x1, ext_xn))        
-        script.append('>data001.dat')
+        script = ['#!/bin/csh', '# hmsIST FT along direct dimension for first samples point only', 'nmrPipe -in fid/data001.fid       \\']
 
-        outfile = open(filename, 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
+        if sol == False:
+            script.append('| nmrPipe -fn SOL \\')
+        script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\', '| nmrPipe  -fn ZF -auto                         \\', '| nmrPipe  -fn FT -verb                             \\', f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\'))
+
+        if ext_l:
+            script.append('| nmrPipe  -fn EXT -left -sw           \\')
+        elif ext_r:
+            script.append('| nmrPipe  -fn EXT -right -sw          \\')
+        elif ext_x1:
+            script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
+
+        script.append('>data001.dat')
+        with open(filename, 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
 
     def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, xP0=False, xP1=False, yP0=False, yP1=False):
 
