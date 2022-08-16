@@ -168,64 +168,55 @@ class Bruker3D(object):
                 outfile.write("%s\n" % item)
 
     def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, xP0=False, xP1=False, yP0=False, yP1=False):
+        script = ['#!/bin/csh', '# hmsIST FT along indirect dimensions', 'xyz2pipe -in rec/data%03d.ft1 -x \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto                       \\']
 
-        script = []
-        script.append('#!/bin/csh')
-        script.append('# hmsIST FT along indirect dimensions')
-        script.append('xyz2pipe -in rec/data%03d.ft1 -x \\')
-        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
-        script.append('| nmrPipe  -fn ZF -auto                       \\')
-        if (triplerez == True):
+        if triplerez == True or yACQ == '6':
             script.append('| nmrPipe  -fn FT -neg                             \\')
-        elif (yACQ == '6'):
-            script.append('| nmrPipe  -fn FT -neg                             \\')
-        elif (yACQ == '5'):
+        elif yACQ == '5':
             script.append('| nmrPipe  -fn FT -alt                             \\')
         else:
             script.append('| nmrPipe  -fn FT                             \\')
-        if (xP0 and xP1):
-                script.append('| nmrPipe  -fn PS -p0 '+str(xP0)+' -p1 '+str(xP1)+' -di              \\')
-        elif (xP0 and not xP1):
-                script.append('| nmrPipe  -fn PS -p0 '+str(xP0)+' -p1 0.0 -di              \\')
-        elif (not xP0 and xP1):
-                script.append('| nmrPipe  -fn PS -p0 0.0 -p1 '+str(xP1)+' -di              \\')
+        if xP0 and xP1:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(xP0)} -p1 {str(xP1)}' + ' -di              \\')
+
+        elif xP0:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(xP0)}' + ' -p1 0.0 -di              \\')
+
+        elif xP1:
+            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(xP1)}' + ' -di              \\')
+
         else:
             script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-        script.append('| nmrPipe  -fn TP \\')
-        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
-        script.append('| nmrPipe  -fn ZF -auto  \\')
-        if (triplerez == True):
+        script.extend(('| nmrPipe  -fn TP \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\'))
+
+        if triplerez == True:
             script.append('| nmrPipe  -fn FT -alt -verb                       \\')
-        elif (zACQ == '6'):
+        elif zACQ == '6':
             script.append('| nmrPipe  -fn FT -neg -verb                            \\')
-        elif (zACQ == '5'):
+        elif zACQ == '5':
             script.append('| nmrPipe  -fn FT -alt -verb                            \\')
         else:
             script.append('| nmrPipe  -fn FT -verb                       \\')
-        if (yP0 and yP1):
-                script.append('| nmrPipe  -fn PS -p0 '+str(yP0)+' -p1 '+str(yP1)+' -di              \\')
-        elif (yP0 and not yP1):
-                script.append('| nmrPipe  -fn PS -p0 '+str(yP0)+' -p1 0.0 -di              \\')
-        elif (not yP0 and yP1):
-                script.append('| nmrPipe  -fn PS -p0 0.0 -p1 '+str(yP1)+' -di              \\')
+        if yP0 and yP1:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)} -p1 {str(yP1)}' + ' -di              \\')
+
+        elif yP0:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)}' + ' -p1 0.0 -di              \\')
+
+        elif yP1:
+            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(yP1)}' + ' -di              \\')
+
         else:
             script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-        script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
-        script.append('| nmrPipe  -fn TP \\')
-        script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
-        script.append('| nmrPipe  -fn ZTP \\')
-        script.append('| nmrPipe  -fn POLY -auto -ord 1 \\')
-        script.append('> 3Dspectrum.dat')
-        if (xyz == True):
-            script.append('nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3')
-            script.append('echo "wrote xyz data out to rec/data%04d.ft3"')
+        script.extend(('| nmrPipe  -fn POLY -auto -ord 1 \\', '| nmrPipe  -fn TP \\', '| nmrPipe  -fn POLY -auto -ord 1 \\', '| nmrPipe  -fn ZTP \\', '| nmrPipe  -fn POLY -auto -ord 1 \\', '> 3Dspectrum.dat'))
+
+        if xyz == True:
+            script.extend(('nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3', 'echo "wrote xyz data out to rec/data%04d.ft3"'))
+
         script.append('proj3D.tcl -in 3Dspectrum.dat')
-
-
-        outfile = open(filename, 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
+        with open(filename, 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
 
 
 
@@ -235,150 +226,73 @@ class Bruker3D(object):
         ext_r = ext[1]
         ext_x1 = ext[2]
         ext_xn = ext[3]
-        script = []
-        script.append('#!/bin/csh')
-        script.append('# hmsIST FT along direct dimension and prepare for reconstruction')
-        script.append('xyz2pipe -in fid/data%03d.fid -x \\')
-        if (sol==False):
+        script = ['#!/bin/csh', '# hmsIST FT along direct dimension and prepare for reconstruction', 'xyz2pipe -in fid/data%03d.fid -x \\']
+
+        if sol == False:
             script.append('| nmrPipe -fn SOL \\')
-        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
-        script.append('| nmrPipe  -fn ZF -auto                         \\')
-        script.append('| nmrPipe  -fn FT -verb                             \\')
-        script.append('| nmrPipe  -fn PS -p0 {} -p1 {} -di              \\'.format(phase0, phase1))
-        if (ext_l):
+        script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\', '| nmrPipe  -fn ZF -auto                         \\', '| nmrPipe  -fn FT -verb                             \\', f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\'))
+
+        if ext_l:
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
-        elif (ext_r):
+        elif ext_r:
             script.append('| nmrPipe  -fn EXT -right -sw          \\')
-        elif (ext_x1):
-            script.append('| nmrPipe  -fn EXT -x1 {}ppm -xn {}ppm -sw             \\'.format(ext_x1, ext_xn))   
+        elif ext_x1:
+            script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
 
-        script.append('| pipe2xyz -ov -out yzx/data%03d.dat -z')
-        script.append('rm -rf yzx_ist')
-        script.append('mkdir yzx_ist')
+        script.extend(('| pipe2xyz -ov -out yzx/data%03d.dat -z', 'rm -rf yzx_ist', 'mkdir yzx_ist'))
 
-        outfile = open(filename, 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
+        with open(filename, 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
 
     def genRecon(self, filenames, proc=0, itr=0, xN=0, yN=0, sthr=0.98, ethr=0.98):
-        # lets make the recon.py file first
-        script = []
-        script.append('#!/usr/bin/env python')
-        script.append('')
-        script.append('from __future__ import print_function')
-        script.append('from multiprocessing import Pool')
-        script.append('# import curses')
-        script.append('from subprocess import call')
-        script.append('import sys')
-        script.append('from os import listdir')
-        script.append('from os.path import isfile, join')
-        script.append('from os import walk')
-        script.append('')
-        script.append('if len(sys.argv) == 1:')
-        script.append('    sys.argv.append(\'yzx/\')')
-        script.append('onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]')
-        script.append('onlyfiles.sort()')
-        script.append('num=len(onlyfiles)')
-        script.append('')
-        script.append('def recon(x):')
-        script.append('    global num')
-        script.append('    path, dirs, files = next(walk(\'./yzx_ist\'))')
-        script.append('    i = len(files)')
-        script.append('    hashsize = int(num/32.0)')
-        script.append('    hashes = int(float(i)/float(hashsize))')
-        script.append('    print(\'[\', end=\'\')')
-        script.append('    for n in range(32):')
-        script.append('        if n < hashes:')
-        script.append('            print(\'#\', end=\'\')')
-        script.append('        else:')
-        script.append('            print(\'-\', end=\'\')')
-        script.append('    print(\']\', end=\'\')')
-        script.append('    perc = 100.0*i/num')
-        script.append('    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')')
-        script.append('    sys.stdout.flush()')
-        script.append('    call(["./hmsist.com", x])')
-        script.append('')
+        script = ['#!/usr/bin/env python', '', 'from __future__ import print_function', 'from multiprocessing import Pool', '# import curses', 'from subprocess import call', 'import sys', 'from os import listdir', 'from os.path import isfile, join', 'from os import walk', '', 'if len(sys.argv) == 1:', "    sys.argv.append(\'yzx/\')", 'onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]', 'onlyfiles.sort()', 'num=len(onlyfiles)', '', 'def recon(x):', '    global num', "    path, dirs, files = next(walk(\'./yzx_ist\'))", '    i = len(files)', '    hashsize = int(num/32.0)', '    hashes = int(float(i)/float(hashsize))', "    print(\'[\', end=\'\')", '    for n in range(32):', '        if n < hashes:', "            print(\'#\', end=\'\')", '        else:', "            print(\'-\', end=\'\')", "    print(\']\', end=\'\')", '    perc = 100.0*i/num', "    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')", '    sys.stdout.flush()', '    call(["./hmsist.com", x])', '']
+
         if proc == 0:
             script.append('pool = Pool(None)')
         else:
-            script.append('pool = Pool(processes='+str(proc)+')')
-        script.append('it = pool.map(recon, onlyfiles)')
-        script.append('print(\'[################################] 100.00% done\')')
-        script.append('print(\'\')')
-        outfile = open(filenames[0], 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
-        script = []
-        script.append('#!/bin/csh')
-        script.append('set F = $1')
-        script.append('  set in = $F:t')
-        script.append('  set out = $F:t:r.phf')
-        script.append('')
-        #script.append('echo $out')
-        if (itr == 0 and xN == 0 and yN == 0):
-            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr 250 -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
-        elif (itr != 0 and xN == 0 and yN == 0):
-            script.append('hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr '+str(itr)+' -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
-        elif (itr == 0 and xN != 0 and yN != 0):
-            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr 250 -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
-        elif (itr != 0 and xN != 0 and yN != 0):
-            script.append('hmsIST -dim 2 -incr 1 -xN '+str(xN)+' -yN '+str(yN)+' -user 1 -itr '+str(itr)+' -i_mult '+str(sthr)+' -e_mult '+str(ethr)+' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
-        outfile = open(filenames[1], 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
-        script = []
-        script.append('#!/bin/csh')
-        script.append('xyz2pipe -in yzx_ist/data%03d.phf | phf2pipe -user 1 | pipe2xyz -out rec/data%03d.ft1')
-        outfile = open(filenames[2], 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
+            script.append(f'pool = Pool(processes={str(proc)})')
+        script.extend(('it = pool.map(recon, onlyfiles)', "print(\'[################################] 100.00% done\')", "print(\'\')"))
+
+        with open(filenames[0], 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
+        script = ['#!/bin/csh', 'set F = $1', '  set in = $F:t', '  set out = $F:t:r.phf', '']
+
+        if itr == 0 and xN == 0 and yN == 0:
+            script.append(f'hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr 250 -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+
+        elif itr != 0 and xN == 0 and yN == 0:
+            script.append(f'hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr {str(itr)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+
+        elif itr == 0 and xN != 0 and yN != 0:
+            script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr 250 -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+
+        elif itr != 0 and xN != 0 and yN != 0:
+            script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr {str(itr)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+
+        with open(filenames[1], 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
+        script = ['#!/bin/csh', 'xyz2pipe -in yzx_ist/data%03d.phf | phf2pipe -user 1 | pipe2xyz -out rec/data%03d.ft1']
+
+        with open(filenames[2], 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
 
 
 
     def genConversion(self, filename, ns=None):
-        if (self.valid == False):
+        if self.valid == False:
             print('Data Directory does not seem to contain Bruker Data')
             return 1
-
-        if (ns == None):
-            self.nsamples = sum(1 for line in open(self.dir+'/nuslist'))
+        if ns is None:
+            self.nsamples = sum(1 for _ in open(f'{self.dir}/nuslist'))
         else:
             self.nsamples = ns
         self.zN = self.nsamples
+        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -aswap -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}        \\', '  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN, self.yN, self.zN), '  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT, self.yT, self.zT), '  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE), '  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5), round(float(self.zSW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5), round(float(self.zOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5), round(float(self.zCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB, self.yLAB, self.zLAB), '  -ndim              3   -aq2D        Complex                        \\']
 
-        script = []
-
-        script.append('#!/bin/csh')
-        script.append('# hmsIST conversion script for Bruker 3D Data')
-        script.append('')
-        script.append('bruk2pipe -in {} \\'.format(self.ser))
-        script.append('  -bad 0.0 -ext -aswap -AMX -decim {} -dspfvs {} -grpdly {}        \\'.format(self.decim,
-                                                                                                     self.dspfvs,
-                                                                                                     self.grpdly))
-        script.append('  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN,
-                                                                               self.yN,
-                                                                               self.zN))
-        script.append('  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT,
-                                                                               self.yT,
-                                                                               self.zT))
-        script.append('  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE))
-        script.append('  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW),5),
-                                                                                  round(float(self.ySW),5),
-                                                                                  round(float(self.zSW),5)))
-        script.append('  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS),5),
-                                                                                     round(float(self.yOBS),5),
-                                                                                     round(float(self.zOBS),5)))
-        script.append('  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR),5),
-                                                                                     round(float(self.yCAR),5),
-                                                                                     round(float(self.zCAR),5)))
-        script.append('  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB,
-                                                                                     self.yLAB,
-                                                                                     self.zLAB))
-        script.append('  -ndim              3   -aq2D        Complex                        \\')
         if self.t2EA == True:
             script.append('| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr                \\')
 
@@ -386,11 +300,9 @@ class Bruker3D(object):
             script.append('#| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr               \\')
 
         script.append('| pipe2xyz -x -out ./fid/data%03d.fid -verb -ov -to 0')
-
-        outfile = open(filename, 'w')
-        for item in script:
-            outfile.write("%s\n" % item)
-        outfile.close()
+        with open(filename, 'w') as outfile:
+            for item in script:
+                outfile.write("%s\n" % item)
 
 class Options(object):
     def __init__(self):
