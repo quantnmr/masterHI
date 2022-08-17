@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 import os.path
 import argparse
@@ -260,7 +260,7 @@ class Bruker3D(object):
                 outfile.write("%s\n" % item)
 
     def genRecon(self, filenames, proc=0, itr=0, xN=0, yN=0, sthr=0.98, ethr=0.98):
-        script = ['#!/usr/bin/env python', '', 'from __future__ import print_function', 'from multiprocessing import Pool', '# import curses', 'from subprocess import call', 'import sys', 'from os import listdir', 'from os.path import isfile, join', 'from os import walk', '', 'if len(sys.argv) == 1:', "    sys.argv.append(\'yzx/\')", 'onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]', 'onlyfiles.sort()', 'num=len(onlyfiles)', '', 'def recon(x):', '    global num', "    path, dirs, files = next(walk(\'./yzx_ist\'))", '    i = len(files)', '    hashsize = int(num/32.0)', '    hashes = int(float(i)/float(hashsize))', "    print(\'[\', end=\'\')", '    for n in range(32):', '        if n < hashes:', "            print(\'#\', end=\'\')", '        else:', "            print(\'-\', end=\'\')", "    print(\']\', end=\'\')", '    perc = 100.0*i/num', "    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')", '    sys.stdout.flush()', '    call(["./hmsist.com", x])', '']
+        script = ['#!/usr/bin/env python3', '', 'from __future__ import print_function', 'from multiprocessing import Pool', '# import curses', 'from subprocess import call', 'import sys', 'from os import listdir', 'from os.path import isfile, join', 'from os import walk', '', 'if len(sys.argv) == 1:', "    sys.argv.append(\'yzx/\')", 'onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]', 'onlyfiles.sort()', 'num=len(onlyfiles)', '', 'def recon(x):', '    global num', "    path, dirs, files = next(walk(\'./yzx_ist\'))", '    i = len(files)', '    hashsize = int(num/32.0)', '    hashes = int(float(i)/float(hashsize))', "    print(\'[\', end=\'\')", '    for n in range(32):', '        if n < hashes:', "            print(\'#\', end=\'\')", '        else:', "            print(\'-\', end=\'\')", "    print(\']\', end=\'\')", '    perc = 100.0*i/num', "    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')", '    sys.stdout.flush()', '    call(["./hmsist.com", x])', '']
 
         if proc == 0:
             script.append('pool = Pool(None)')
