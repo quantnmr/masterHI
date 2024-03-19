@@ -54,11 +54,18 @@ class Bruker3D(object):
         self.ac3 = os.path.join(data, 'acqu3s')
         self.ser = os.path.join(data, 'ser')
         self.pp = os.path.join(data, 'pulseprogram')
+        self.ppc = os.path.join(data, 'pulseprogram.precomp')
         self.nuslist = os.path.join(data, 'nuslist')
         self.dir = data
         self.acqDict = {0: 'undefined', 1: 'qf', 2: 'qsec', 3: 'tppi', 4: 'states', 5: 'states-tppi', 6: 'echo-antiecho'}
 
-        self.valid = bool(os.path.isfile(self.ac1) and os.path.isfile(self.ac2) and os.path.isfile(self.ac3) and os.path.isfile(self.ser) and os.path.isfile(self.pp) and os.path.isfile(self.nuslist))
+        self.valid = bool(os.path.isfile(self.ac1) and 
+                          os.path.isfile(self.ac2) and 
+                          os.path.isfile(self.ac3) and 
+                          os.path.isfile(self.ser) and 
+                          (os.path.isfile(self.pp) or os.path.isfile(self.ppc)) and 
+                          os.path.isfile(self.nuslist)
+                          )
 
         if self.valid:
             with open(self.pp) as fp:
