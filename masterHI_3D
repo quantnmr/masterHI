@@ -506,7 +506,7 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
             os.system('mkdir yzx_ist')
 
         os.system('./recon.py yzx/')
-        print("Moving from PHF to standard nmrPipe data order")
+        print("Moving from PHF to standard nmrPipe data order (prepare4ft.com)")
         os.system('./prepare4ft.com')
         savedargs.beenReconed = True
     else:
