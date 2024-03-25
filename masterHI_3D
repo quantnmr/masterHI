@@ -66,7 +66,10 @@ class Bruker3D(object):
                           (os.path.isfile(self.pp) or os.path.isfile(self.ppc)) and 
                           os.path.isfile(self.nuslist)
                           )
-
+        # sort out if pulseprogram or pulseprogram.precomp exists (or both I guess)
+        if os.path.isfile(self.ppc) and not os.path.isfile(self.pp):
+            #print('precomp exists, but pulseprogram does not')
+            self.pp = self.ppc
         if self.valid:
             with open(self.pp) as fp:
                 self.t2EA = any('Echo/Antiecho' in line and 't2' in line for line in fp)
@@ -75,18 +78,18 @@ class Bruker3D(object):
                 for line in fp:
                     if 'DTYPA' in line:
                         self.dtypa = int(line.split()[1])
-                        if self.dtypa == 1:
+                        if self.dtypa == 0:
+                            self.datatypeconversion = ''
+                        elif self.dtypa == 1:
                             self.datatypeconversion = '-noi2f'
                         elif self.dtypa == 2:
                             self.datatypeconversion = '-ws 8 -noi2f'
-                        elif self.dtypa == 0:
-                            self.datatypeconversion = ''
                     if 'BYTORDA' in line:
                         byteorder = line.split()[-1]
-                        if byteorder == '1':
-                            self.byteorder = 'noaswap'
                         if byteorder == '0':
                             self.byteorder = 'aswap'
+                        elif byteorder == '1':
+                            self.byteorder = 'noaswap'
                     if 'DECIM' in line:
                         self.decim = line.split()[1]
                     if 'DSPFVS' in line:
