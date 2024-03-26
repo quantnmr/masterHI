@@ -69,7 +69,6 @@ class Bruker3D(object):
         # sort out if pulseprogram or pulseprogram.precomp exists (or both I guess)
         if os.path.isfile(self.ppc) and not os.path.isfile(self.pp):
             #print('precomp exists, but pulseprogram does not')
-            
             self.pp = self.ppc
         if self.valid:
             with open(self.pp) as fp:

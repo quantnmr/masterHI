@@ -58,7 +58,10 @@ class Bruker2D(object):
                           (os.path.isfile(self.pp) or os.path.isfile(self.ppc)) and 
                           os.path.isfile(self.nuslist)
                           )
-
+        # sort out if pulseprogram or pulseprogram.precomp exists (or both I guess)
+        if os.path.isfile(self.ppc) and not os.path.isfile(self.pp):
+            #print('precomp exists, but pulseprogram does not')
+            self.pp = self.ppc
         if self.valid:
             with open(self.pp) as fp:
                 self.t2EA = any('Echo/Antiecho' in line and 't2' in line for line in fp)
