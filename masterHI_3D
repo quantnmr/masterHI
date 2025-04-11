@@ -117,6 +117,8 @@ class Bruker3D(object):
                 elif ratio > 9 and ratio < 11:
                     self.xLAB = 'N_x'
             with open(self.ac2) as fp:
+                # Initialize ySW as None to track if it's found
+                self.ySW = None
                 for line in fp:
                     if '##$SW_h= ' in line:
                         self.ySW = line.split()[1]
@@ -128,6 +130,9 @@ class Bruker3D(object):
                         self.yBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.yACQ = line.split()[1]
+                # If ySW wasn't found in the file, calculate it from yO1 and yOBS - this may happen because we are actually looks at a uniformyl sampled data set
+                if self.ySW is None:
+                    self.ySW = str(float(self.yO1) * float(self.yOBS))
                 self.yN = 4
                 self.yT = 2
                 self.yMODE = 'Real'
