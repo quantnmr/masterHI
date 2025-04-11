@@ -144,6 +144,8 @@ class Bruker3D(object):
                 elif ratio > 9 and ratio < 11:
                     self.yLAB = 'N_y'
             with open(self.ac3) as fp:
+                # Initialize zSW as None to track if it's found
+                self.zSW = None
                 for line in fp:
                     if '##$SW_h= ' in line:
                         self.zSW = line.split()[1]
@@ -155,6 +157,9 @@ class Bruker3D(object):
                         self.zBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.zACQ = line.split()[1]
+                # If zSW wasn't found in the file, calculate it from zO1 and zOBS
+                if self.zSW is None:
+                    self.zSW = str(float(self.zO1) * float(self.zOBS))
                 self.zN = 0
                 self.zT = 2
                 self.zMODE = 'Real'
