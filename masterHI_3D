@@ -39,6 +39,8 @@ parser.add_argument('--yP1', default=False)
 parser.add_argument('--triplerez', default=False, action='store_true')
 parser.add_argument('--xyz', default=False, action='store_true')
 parser.add_argument('--clean', default=False, action='store_true')
+parser.add_argument('--clean_y', default=False, action='store_true', help='Clean without confirmation')
+parser.add_argument('--ser', default='ser', help='Name of the ser file (default: ser)')
 
 
 
@@ -48,11 +50,11 @@ args = parser.parse_args()
 class Bruker3D(object):
 
 
-    def __init__(self, data):
+    def __init__(self, data, ser_file='ser'):
         self.ac1 = os.path.join(data, 'acqus')
         self.ac2 = os.path.join(data, 'acqu2s')
         self.ac3 = os.path.join(data, 'acqu3s')
-        self.ser = os.path.join(data, 'ser')
+        self.ser = os.path.join(data, ser_file)
         self.pp = os.path.join(data, 'pulseprogram')
         self.ppc = os.path.join(data, 'pulseprogram.precomp')
         self.nuslist = os.path.join(data, 'nuslist')
@@ -117,11 +119,14 @@ class Bruker3D(object):
                 elif ratio > 9 and ratio < 11:
                     self.xLAB = 'N_x'
             with open(self.ac2) as fp:
-                # Initialize ySW as None to track if it's found
+                # Initialize ySW and ySW_ppm as None to track if they're found
                 self.ySW = None
+                self.ySW_ppm = None
                 for line in fp:
                     if '##$SW_h= ' in line:
                         self.ySW = line.split()[1]
+                    if '##$SW= ' in line:
+                        self.ySW_ppm = line.split()[1]
                     if '##$SFO1= ' in line:
                         self.yOBS = line.split()[1]
                     if '##$O1= ' in line:
@@ -130,9 +135,9 @@ class Bruker3D(object):
                         self.yBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.yACQ = line.split()[1]
-                # If ySW wasn't found in the file, calculate it from yO1 and yOBS - this may happen because we are actually looks at a uniformyl sampled data set
-                if self.ySW is None:
-                    self.ySW = str(float(self.yO1) * float(self.yOBS))
+                # If ySW wasn't found in the file, calculate it from ySW_ppm and yOBS
+                if self.ySW is None and self.ySW_ppm is not None:
+                    self.ySW = str(float(self.ySW_ppm) * float(self.yOBS))
                 self.yN = 4
                 self.yT = 2
                 self.yMODE = 'Real'
@@ -144,11 +149,14 @@ class Bruker3D(object):
                 elif ratio > 9 and ratio < 11:
                     self.yLAB = 'N_y'
             with open(self.ac3) as fp:
-                # Initialize zSW as None to track if it's found
+                # Initialize zSW and zSW_ppm as None to track if they're found
                 self.zSW = None
+                self.zSW_ppm = None
                 for line in fp:
                     if '##$SW_h= ' in line:
                         self.zSW = line.split()[1]
+                    if '##$SW= ' in line:
+                        self.zSW_ppm = line.split()[1]
                     if '##$SFO1= ' in line:
                         self.zOBS = line.split()[1]
                     if '##$O1= ' in line:
@@ -157,9 +165,9 @@ class Bruker3D(object):
                         self.zBF1 = line.split()[1]
                     if '##$FnMODE= ' in line:
                         self.zACQ = line.split()[1]
-                # If zSW wasn't found in the file, calculate it from zO1 and zOBS
-                if self.zSW is None:
-                    self.zSW = str(float(self.zO1) * float(self.zOBS))
+                # If zSW wasn't found in the file, calculate it from zSW_ppm and zOBS
+                if self.zSW is None and self.zSW_ppm is not None:
+                    self.zSW = str(float(self.zSW_ppm) * float(self.zOBS))
                 self.zN = 0
                 self.zT = 2
                 self.zMODE = 'Real'
@@ -325,15 +333,37 @@ class Bruker3D(object):
         else:
             self.nsamples = ns
         self.zN = self.nsamples
-        script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}    {self.datatypeconversion}    \\', '  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN, self.yN, self.zN), '  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT, self.yT, self.zT), '  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE), '  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5), round(float(self.zSW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5), round(float(self.zOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5), round(float(self.zCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB, self.yLAB, self.zLAB), '  -ndim              3   -aq2D        Complex                        \\']
+
+        # Base script parts that are always included
+        script_start = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\']
+        
+        # Create the conversion options line based on whether grpdly exists
+        if hasattr(self, 'grpdly'):
+            conversion_options = f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}    {self.datatypeconversion}    \\'
+        else:
+            conversion_options = f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs}    {self.datatypeconversion}    \\'
+
+        script_rest = [
+            '  -xN {0: >16}   -yN {1: >16}   -zN {2: >16} \\'.format(self.xN, self.yN, self.zN),
+            '  -xT {0: >16}   -yT {1: >16}   -zT {2: >16} \\'.format(self.xT, self.yT, self.zT),
+            '  -xMODE {0: >13}   -yMODE {1: >13}   -zMODE {2: >13} \\'.format(self.xMODE, self.yMODE, self.zMODE),
+            '  -xSW {0: >15}   -ySW {1: >15}   -zSW {2: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5), round(float(self.zSW), 5)),
+            '  -xOBS {0: >14}   -yOBS {1: >14}   -zOBS {2: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5), round(float(self.zOBS), 5)),
+            '  -xCAR {0: >14}   -yCAR {1: >14}   -zCAR {2: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5), round(float(self.zCAR), 5)),
+            '  -xLAB {0: >14}   -yLAB {1: >14}   -zLAB {2: >14} \\'.format(self.xLAB, self.yLAB, self.zLAB),
+            '  -ndim              3   -aq2D        Complex                        \\'
+        ]
+
+        # Combine all parts of the script
+        script = script_start + [conversion_options] + script_rest
 
         if self.t2EA == True:
             script.append('| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr                \\')
-
         else:
             script.append('#| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr               \\')
 
         script.append('| pipe2xyz -x -out ./fid/data%03d.fid -verb -ov -to 0')
+        
         with open(filename, 'w') as outfile:
             for item in script:
                 outfile.write("%s\n" % item)
@@ -341,6 +371,7 @@ class Bruker3D(object):
 class Options(object):
     def __init__(self):
         self.dir = False
+        self.ser = 'ser'
         self.phase0 = 0
         self.phase1 = 0
         self.nsamples = 0
@@ -389,8 +420,10 @@ if (args.conv): # requested a bruker to nmrpipe conversion
     else:
         savedargs.dir = '.'
 
+    # Store the ser filename in savedargs
+    savedargs.ser = args.ser
 
-    data = Bruker3D(savedargs.dir)
+    data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
     if args.nsamples:
         savedargs.nsamples = args.nsamples
         r = data.genConversion('convert.com', ns=savedargs.nsamples)
@@ -408,7 +441,7 @@ if (args.conv): # requested a bruker to nmrpipe conversion
 if (args.phase or args.phasecheck): # requested a phase correction in first dimension
 
     if (savedargs.beenConverted):
-        data = Bruker3D(savedargs.dir)
+        data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
 
         savedargs.EXT_L = args.EXT_L
         savedargs.EXT_R = args.EXT_R
@@ -460,7 +493,7 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
 
     if (savedargs.beenPhased):
 
-        data = Bruker3D(savedargs.dir)
+        data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
         # savedargs.noEXT = args.noEXT
         if (args.nsamples):
             savedargs.nsamples = args.nsamples
@@ -523,7 +556,7 @@ if (args.recon): # requested a reconstruction - includes xyz->yzx and phf2pipe s
 
 if (args.ft):
     if (savedargs.beenReconed == True):
-        data = Bruker3D(savedargs.dir)
+        data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
         savedargs.triplerez = args.triplerez
         savedargs.xyz = args.xyz
         savedargs.xP0 = args.xP0
@@ -542,10 +575,15 @@ if (args.ft):
         print("You need to do a reconstruction of the data before the final FT of the reconstructed dimensons")
 
 
-if (args.clean):
-    response = input("Are you sure you want to delete all processing files, except for the projections and the spectrum file/s? (Yes/No) ")
-    if (response == 'Yes'):
+if (args.clean or args.clean_y):
+    if args.clean_y:
+        # Clean without asking
         os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
+    else:
+        # Original clean behavior with confirmation
+        response = input("Are you sure you want to delete all processing files, except for the projections and the spectrum file/s? (Yes/No) ")
+        if (response == 'Yes'):
+            os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
 
 
 file = open('.masterHI.config','wb')
