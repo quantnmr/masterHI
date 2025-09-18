@@ -131,6 +131,8 @@ class Bruker2D(object):
                     self.yLAB = 'C_y'
                 elif ratio > 9 and ratio < 11:
                     self.yLAB = 'N_y'
+                else:
+                    self.yLAB = 'Y_y'
             
             self.xCAR = float(self.xO1) / float(self.xBF1)
             self.yCAR = float(self.yO1) / float(self.yBF1)
