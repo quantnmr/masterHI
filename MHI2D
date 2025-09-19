@@ -216,7 +216,8 @@ def reconstruct(
     ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn")
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip automatic spectrum display")
 ):
     """Reconstruct the NMR data."""
     savedargs = load_saved_args()
@@ -301,6 +302,10 @@ def reconstruct(
         script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
     
     script.extend(('| nmrPipe  -fn POLY -auto -ord 1 \\', '| nmrPipe  -fn TP \\', '| nmrPipe  -fn POLY -auto -ord 1 \\', '> 2Dspectrum.dat'))
+    
+    # Add nmrDraw command unless --noDraw is specified
+    if not no_draw:
+        script.append('nmrDraw -in 2Dspectrum.dat')
 
     with open('proc.com', 'w') as outfile:
         for item in script:
@@ -357,6 +362,7 @@ def workflow(
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
     auto_n: bool = Option(False, "--autoN", help="Auto N option"),
     itr: Optional[str] = Option(None, "--itr", help="Iteration option"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip automatic spectrum display"),
     convert_only: bool = Option(False, "--convert-only", help="Only run conversion"),
     reconstruct_only: bool = Option(False, "--reconstruct-only", help="Only run reconstruction")
 ):
@@ -378,7 +384,7 @@ def workflow(
         reconstruct(
             dir=dir, nsamples=nsamples, sthr=sthr, ethr=ethr, no_sol=no_sol,
             x_p0=x_p0, x_p1=x_p1, y_p0=y_p0, y_p1=y_p1, ext_l=ext_l, ext_r=ext_r,
-            ext_x1=ext_x1, ext_xn=ext_xn, y_n=y_n, auto_n=auto_n, itr=itr
+            ext_x1=ext_x1, ext_xn=ext_xn, y_n=y_n, auto_n=auto_n, itr=itr, no_draw=no_draw
         )
         typer.echo("✅ Reconstruction completed!")
     

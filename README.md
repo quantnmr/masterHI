@@ -82,6 +82,7 @@ MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 - `--yN`: Y dimension size
 - `--autoN`: Auto-determine N
 - `--itr`: Iteration option
+- `--noDraw`: Skip automatic spectrum display
 
 ### Workflow
 Runs both convert and reconstruct in sequence.
@@ -184,6 +185,25 @@ MHI2D convert --dir /path/to/data --nsamples 100
 # Then reconstruct with custom parameters
 MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
+
+## Automatic Spectrum Display
+
+By default, MHI2D automatically opens the processed spectrum in nmrDraw after reconstruction completes. This allows you to immediately view your results without additional steps.
+
+```bash
+# Spectrum opens automatically in nmrDraw
+MHI2D workflow --dir /path/to/data
+
+# Skip automatic display (useful for batch processing)
+MHI2D workflow --dir /path/to/data --noDraw
+MHI2D reconstruct --dir /path/to/data --noDraw
+```
+
+**When to use `--noDraw`:**
+- Batch processing multiple datasets
+- Running in headless environments
+- When you prefer to manually open spectra
+- Automated scripts where GUI display isn't needed
 
 ## Output Files
 
