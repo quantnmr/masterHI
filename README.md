@@ -91,7 +91,7 @@ MHI3D PC
 #required for your direct dimension. You will iteratively work this step putting in values determined. 
 #E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
 
-N.B. Solvent supression is on by default. Turn it off with --noSOL
+#N.B. Solvent supression is on by default. Turn it off with --noSOL
 
 MHI3D phasecheck --xP0 0.0 --xP1 0.0 --EXT_L
 # Or using alias:
