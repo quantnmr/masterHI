@@ -10,7 +10,7 @@ import typer
 from typer import Option, Argument
 
 app = typer.Typer(
-    name="masterHI",
+    name="MHI2D",
     help="hmsIST NUS Processing Script Generator",
     no_args_is_help=True
 )
