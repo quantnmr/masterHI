@@ -354,7 +354,7 @@ def save_args(savedargs):
 @app.command()
 def convert(
     dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples to convert"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples to convert (or 'all' for all samples)"),
     ser: str = Option('ser', "--ser", help="Name of the ser file")
 ):
     """Convert Bruker 3D data to nmrPipe format."""
@@ -385,7 +385,14 @@ def convert(
         raise typer.Exit(1)
     
     if nsamples:
-        savedargs.nsamples = nsamples
+        if nsamples.lower() == 'all':
+            savedargs.nsamples = None  # Will use all samples from nuslist
+        else:
+            try:
+                savedargs.nsamples = int(nsamples)
+            except ValueError:
+                typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
+                raise typer.Exit(1)
     
     r = data.genConversion('convert.com', ns=int(savedargs.nsamples) if savedargs.nsamples else None)
 
@@ -461,7 +468,7 @@ def phasecheck(
 
 @app.command()
 def reconstruct(
-    nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction (or 'all' for all samples)"),
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
@@ -499,7 +506,14 @@ def reconstruct(
         raise typer.Exit(1)
     
     if nsamples:
-        savedargs.nsamples = nsamples
+        if nsamples.lower() == 'all':
+            savedargs.nsamples = None  # Will use all samples from nuslist
+        else:
+            try:
+                savedargs.nsamples = int(nsamples)
+            except ValueError:
+                typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
+                raise typer.Exit(1)
     if sthr and ethr:
         savedargs.sthr = sthr
         savedargs.ethr = ethr

@@ -154,7 +154,7 @@ def save_args(savedargs):
 @app.command()
 def convert(
     dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples to convert")
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples to convert (or 'all' for all samples)")
 ):
     """Convert Bruker data to nmrPipe format."""
     savedargs = load_saved_args()
@@ -183,7 +183,14 @@ def convert(
         raise typer.Exit(1)
     
     if nsamples:
-        savedargs.nsamples = nsamples
+        if nsamples.lower() == 'all':
+            savedargs.nsamples = None  # Will use all samples from nuslist
+        else:
+            try:
+                savedargs.nsamples = int(nsamples)
+            except ValueError:
+                typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
+                raise typer.Exit(1)
     
     r = data.genConversion('convert.com', ns=int(savedargs.nsamples) if savedargs.nsamples else None)
 
@@ -202,7 +209,7 @@ def convert(
 @app.command()
 def reconstruct(
     dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction (or 'all' for all samples)"),
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     no_sol: bool = Option(False, "--noSOL", help="No solvent suppression"),
@@ -247,7 +254,14 @@ def reconstruct(
         raise typer.Exit(1)
     
     if nsamples:
-        savedargs.nsamples = nsamples
+        if nsamples.lower() == 'all':
+            savedargs.nsamples = None  # Will use all samples from nuslist
+        else:
+            try:
+                savedargs.nsamples = int(nsamples)
+            except ValueError:
+                typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
+                raise typer.Exit(1)
     if sthr and ethr:
         savedargs.sthr = sthr
         savedargs.ethr = ethr
@@ -347,7 +361,7 @@ def clean(
 @app.command()
 def workflow(
     dir: str = Option(..., "--dir", "-d", help="Data directory path"),
-    nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples (for convert and reconstruct)"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples (for convert and reconstruct) (or 'all' for all samples)"),
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     no_sol: bool = Option(False, "--noSOL", help="No solvent suppression"),

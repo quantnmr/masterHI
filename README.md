@@ -108,22 +108,24 @@ Converts Bruker data to nmrPipe format.
 
 ```bash
 MHI2D convert --dir /path/to/data --nsamples 100
+MHI2D convert --dir /path/to/data --nsamples all
 ```
 
 **Options:**
 - `--dir, -d`: Data directory path
-- `--nsamples, -n`: Number of samples to convert
+- `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
 
 #### Reconstruct
 Reconstructs the NMR data using hmsIST.
 
 ```bash
 MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
+MHI2D reconstruct --dir /path/to/data --nsamples all --sthr 0.95 --ethr 0.95
 ```
 
 **Options:**
 - `--dir, -d`: Data directory path
-- `--nsamples, -n`: Number of samples for reconstruction
+- `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
 - `--sthr`: Start threshold [default: 0.98]
 - `--ethr`: End threshold [default: 0.98]
 - `--noSOL`: Skip solvent suppression
@@ -165,11 +167,12 @@ Converts Bruker 3D data to nmrPipe format.
 
 ```bash
 MHI3D convert --dir /path/to/data --nsamples 100
+MHI3D convert --dir /path/to/data --nsamples all
 ```
 
 **Options:**
 - `--dir, -d`: Data directory path
-- `--nsamples, -n`: Number of samples to convert
+- `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
 - `--noSOL`: Skip solvent suppression
 - `--EXT_L, --EXT_R`: Extract left/right regions
 - `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
@@ -191,10 +194,11 @@ Reconstructs the 3D NMR data using hmsIST.
 
 ```bash
 MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+MHI3D reconstruct --nsamples all --sthr 0.95 --ethr 0.95
 ```
 
 **Options:**
-- `--nsamples, -n`: Number of samples for reconstruction
+- `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
 - `--sthr`: Start threshold [default: 0.98]
 - `--ethr`: End threshold [default: 0.98]
 - `--yN`: Y dimension size
@@ -307,6 +311,10 @@ MHI2D workflow --dir /path/to/data --xP0 0.0 --xP1 0.0 --yP0 0.0 --yP1 0.0
 ```bash
 # Process only first 250 samples (useful for incomplete acquisitions)
 MHI2D workflow --dir /path/to/data --nsamples 250
+
+# Process all available samples from nuslist
+MHI2D convert --dir /path/to/data --nsamples all
+MHI2D reconstruct --dir /path/to/data --nsamples all
 ```
 
 ### Custom Processing Parameters
