@@ -430,7 +430,7 @@ MHI3D generates and executes the following scripts:
 - **prepare4recon.com**: Pre-reconstruction processing script - transforms, extracts and phases all acquired FIDs
 - **recon.com**: hmsIST reconstruction script that feeds CPUs with data to reconstruct. It launches:
     - **hmist.com**: The wrapper around the hmsIST function
-- **ft.com**: Fourier transform script for all dimensions
+- **ft.com**: Fourier transform script for all indirect dimensions
 
 ### Automatic Detection
 Both scripts automatically detect:
