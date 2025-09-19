@@ -133,12 +133,32 @@ The Bruker data directory must contain:
 - **Flexible overrides**: Change any parameter at any time
 - **Directory validation**: Ensures data directory exists and contains valid Bruker data
 
-## Examples
+## Common Processing Scenarios
 
-### Basic 2D NOESY Processing
+### 15N HSQC Spectra
+For 15N HSQC experiments, the 1H amide protons are typically located in the left half of the spectrum (downfield region). Use the `--EXT_L` option to extract only the relevant region:
+
 ```bash
-# Convert and reconstruct in one command
-MHI2D workflow --dir /path/to/2D_NOESY_data
+# Process 15N HSQC with left-side extraction
+MHI2D workflow --dir /path/to/15N_HSQC_data --EXT_L
+```
+
+This extracts only the left side of the spectrum, focusing on the amide region and improving processing efficiency.
+
+### 13C HSQC/HMQC Spectra
+For 13C HSQC/HMQC experiments, you might want to extract specific chemical shift ranges:
+
+```bash
+# Extract specific ppm range (e.g., 0-8 ppm for aliphatic region)
+MHI2D workflow --dir /path/to/13C_HSQC_data --EXT_x1 0.0 --EXT_xn 8.0
+```
+
+### 2D Homonuclear NOESY Spectra
+For 2D homonuclear NOESY experiments, you typically want the full spectrum:
+
+```bash
+# Process full NOESY spectrum (no extraction needed)
+MHI2D workflow --dir /path/to/NOESY_data
 
 # With custom phase corrections
 MHI2D workflow --dir /path/to/data --xP0 0.0 --xP1 0.0 --yP0 0.0 --yP1 0.0
@@ -163,34 +183,6 @@ MHI2D convert --dir /path/to/data --nsamples 100
 
 # Then reconstruct with custom parameters
 MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
-```
-
-## Common Processing Scenarios
-
-### 15N HSQC Spectra
-For 15N HSQC experiments, the 1H amide protons are typically located in the left half of the spectrum (downfield region). Use the `--EXT_L` option to extract only the relevant region:
-
-```bash
-# Process 15N HSQC with left-side extraction
-MHI2D workflow --dir /path/to/15N_HSQC_data --EXT_L
-```
-
-This extracts only the left side of the spectrum, focusing on the amide region and improving processing efficiency.
-
-### 13C HSQC/HMQC Spectra
-For 13C HSQC/HMQC experiments, you might want to extract specific chemical shift ranges:
-
-```bash
-# Extract specific ppm range (e.g., 0-8 ppm for aliphatic region)
-MHI2D workflow --dir /path/to/13C_HSQC_data --EXT_x1 0.0 --EXT_xn 8.0
-```
-
-### 2D homonuclear NOESY Spectra
-For 2D homonuclear NOESY experiments, you typically want the full spectrum:
-
-```bash
-# Process full NOESY spectrum (no extraction needed)
-MHI2D workflow --dir /path/to/NOESY_data
 ```
 
 ## Output Files
