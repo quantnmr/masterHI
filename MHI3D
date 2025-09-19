@@ -201,7 +201,7 @@ class Bruker3D(object):
         if xyz == True:
             script.extend(('nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3', 'echo "wrote xyz data out to rec/data%04d.ft3"'))
 
-        script.append('proj3D.tcl -in 3Dspectrum.dat')
+        script.append('proj3D.tcl -noverb -in 3Dspectrum.dat')
         with open(filename, 'w') as outfile:
             for item in script:
                 outfile.write("%s\n" % item)
@@ -585,7 +585,45 @@ def ft(
     os.system('./ft.com')
     savedargs.beenFT = True
     
+    # Detect and report the generated files
+    typer.echo("📁 Generated files:")
+    
+    # Check for 3Dspectrum.dat
+    if os.path.exists('3Dspectrum.dat'):
+        typer.echo("  ✅ 3Dspectrum.dat")
+    else:
+        typer.echo("  ❌ 3Dspectrum.dat (not found)")
+    
+    
     typer.echo("✅ Final Fourier transform completed successfully!")
+    
+    # Look for 2D projection files (pattern: *.dat files that are not 3Dspectrum.dat or data001.dat)
+    import glob
+    projection_files = []
+    excluded_files = ['3Dspectrum.dat', 'data001.dat']
+    for file in glob.glob('*.dat'):
+        if file not in excluded_files:
+            projection_files.append(file)
+    
+    if projection_files:
+        typer.echo("  📊 2D Projections:")
+        for file in sorted(projection_files):
+            typer.echo(f"    • {file}")
+        
+        # Launch nmrDraw windows for each projection
+        typer.echo("🖥️  Launching nmrDraw windows for projections...")
+        for fn, file in enumerate(sorted(projection_files)):
+            typer.echo(f"  Opening {file} in nmrDraw...")
+            if fn == len(projection_files) - 1:
+                # Last window - no & so it blocks until closed
+                os.system(f'nmrDraw -Ws 1000 700 -position {50 + (fn * 50)} {50 + (fn * 50)} -in {file}')
+            else:
+                # Other windows - run in background
+                os.system(f'nmrDraw -Ws 1000 700 -position {50 + (fn * 50)} {50 + (fn * 50)} -in {file} &')
+    else:
+        typer.echo("  ❌ No 2D projection files found")
+    
+    
     
     save_args(savedargs)
 
