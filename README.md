@@ -11,19 +11,19 @@ The basic workflow for non-uniformly sampled data reconstruction involves:
 
 ### 2D Data (MHI2D)
 1. **Conversion** from Bruker format to nmrPipe format
-2. **Processing** with nmrPipe functions of the direct dimension
-3. **Reconstruction** of the indirect dimension using hmsIST
-4. **Processing** with nmrPipe functions of the indirect dimension
+2. **Reconstruction** of the indirect dimension using hmsIST while **FT Processing and Phasing** the direct and indirect dimensions
+3. **Review** with nmrDraw so phases and be adjusted
+
 
 ### 3D Data (MHI3D)
 1. **Conversion** from Bruker format to nmrPipe format
-2. **Phase checking** and correction for all three dimensions
+2. **Phase checking** and correction for the direct dimension
 3. **Reconstruction** of the indirect dimensions using hmsIST
-4. **Fourier transforms** for all dimensions
-5. **Automatic generation** of 2D projections and 3D spectrum
-6. **Automatic display** of all projections in nmrDraw
+4. **Fourier transforms** for indcirect dimensiojmns with automatic phase detection or manual setting
+5. **Automatic generation** of 2D projections and 3D spectrum 
+6. **Automatic display** of all projections in nmrDraw for phase checking
 
-Both MHI2D and MHI3D automate these processes by generating and executing the necessary scripts, while providing a modern command-line interface with comprehensive validation and user feedback.
+Both MHI2D and MHI3D automate these processes by generating and executing the necessary scripts, while providing a modern command-line interface.
 
 ## Installation
 
