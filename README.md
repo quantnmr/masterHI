@@ -87,7 +87,9 @@ MHI3D phasecheck
 # Or using alias:
 MHI3D PC 
 
-This step launches an nmrDraw window, which will allow you to discover the phases and extraction required for your direct dimension. You will iteratively work this step putting in values determined. E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
+#This step launches an nmrDraw window, which will allow you to discover the phases and extraction 
+#required for your direct dimension. You will iteratively work this step putting in values determined. 
+#E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
 
 N.B. Solvent supression is on by default. Turn it off with --noSOL
 
