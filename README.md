@@ -241,6 +241,21 @@ MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 - `--zACQ`: Z dimension acquired
 - `--xyz`: Output nmrPipe xyz format in addition to 3Dspectrum.dat
 
+**Automatic Detection and Defaults:**
+MHI3D automatically detects optimal processing parameters from your Bruker acquisition files:
+
+- **Acquisition Mode Detection**: Reads `##$FnMODE=` from `acqu2s` and `acqu3s` files to determine acquisition modes
+- **Smart FT Processing**: Automatically chooses appropriate Fourier transform parameters:
+  - `yACQ == '6'` or `zACQ == '6'` → Uses `-neg` flag (negative acquisition mode)
+  - `yACQ == '5'` or `zACQ == '5'` → Uses `-alt` flag (alternating acquisition mode)  
+  - `--triplerez` flag → Uses `-alt` flag for standard Bruker triple resonance experiments where appropriate
+  - Default → Standard FT processing
+- **Default Phase Corrections**: If no phase corrections are specified, uses zero phase correction (`-p0 0.0 -p1 0.0`)
+- **Nucleus Detection**: Automatically detects nucleus types from `##$NUC1=` in acqus files for proper labeling
+
+**When to use `--triplerez`:**
+Use this flag for standard Bruker triple resonance experiments (e.g., HNCO, HNCA, HNCACB) where the acquisition parameters are well-established and the automatic detection should use triple resonance defaults.
+
 
 #### Clean
 Removes processing files, keeping only projections and spectrum files.
@@ -295,6 +310,8 @@ The Bruker data directory must contain:
 - **3D spectrum generation**: Creates `3Dspectrum.dat` for full 3D analysis
 - **Multi-dimensional phase correction**: Handles phase corrections for all three dimensions
 - **Nucleus detection**: Automatically detects H, C, N, F nuclei across all dimensions
+- **Smart Bruker parameter detection**: Automatically reads acquisition modes from Bruker files and chooses optimal processing parameters
+- **Intelligent FT processing**: Automatically selects appropriate Fourier transform flags based on acquisition mode (negative, alternating, or standard)
 
 ## Common Processing Scenarios
 
@@ -455,6 +472,14 @@ Both scripts automatically detect:
 - Nucleus types (H, F, C, N) from acqus files
 - Required processing parameters from Bruker files
 - 3D projection naming based on nucleus combinations (MHI3D only)
+
+**MHI3D Advanced Detection:**
+- **Acquisition Mode Detection**: Reads `##$FnMODE=` from `acqu2s` and `acqu3s` files
+- **Smart FT Parameter Selection**: Automatically chooses appropriate Fourier transform flags:
+  - Negative acquisition mode (`FnMODE=6`) → `-neg` flag
+  - Alternating acquisition mode (`FnMODE=5`) → `-alt` flag
+  - Standard acquisition → Default FT processing
+- **Triple Resonance Optimization**: `--triplerez` flag overrides detection for standard Bruker triple resonance experiments
 
 ## Requirements
 
