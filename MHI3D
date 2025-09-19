@@ -155,7 +155,7 @@ class Bruker3D(object):
             for item in script:
                 outfile.write("%s\n" % item)
 
-    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, xP0=False, xP1=False, yP0=False, yP1=False):
+    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, yP0=False, yP1=False, zP0=False, zP1=False):
         script = ['#!/bin/csh', '# hmsIST FT along indirect dimensions', 'xyz2pipe -in rec/data%03d.ft1 -x \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto                       \\']
 
         if triplerez == True or yACQ == '6':
@@ -164,14 +164,14 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn FT -alt                             \\')
         else:
             script.append('| nmrPipe  -fn FT                             \\')
-        if xP0 and xP1:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(xP0)} -p1 {str(xP1)}' + ' -di              \\')
+        if yP0 and yP1:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)} -p1 {str(yP1)}' + ' -di              \\')
 
-        elif xP0:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(xP0)}' + ' -p1 0.0 -di              \\')
+        elif yP0:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)}' + ' -p1 0.0 -di              \\')
 
-        elif xP1:
-            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(xP1)}' + ' -di              \\')
+        elif yP1:
+            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(yP1)}' + ' -di              \\')
 
         else:
             script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
@@ -185,14 +185,14 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn FT -alt -verb                            \\')
         else:
             script.append('| nmrPipe  -fn FT -verb                       \\')
-        if yP0 and yP1:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)} -p1 {str(yP1)}' + ' -di              \\')
+        if zP0 and zP1:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(zP0)} -p1 {str(zP1)}' + ' -di              \\')
 
-        elif yP0:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)}' + ' -p1 0.0 -di              \\')
+        elif zP0:
+            script.append(f'| nmrPipe  -fn PS -p0 {str(zP0)}' + ' -p1 0.0 -di              \\')
 
-        elif yP1:
-            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(yP1)}' + ' -di              \\')
+        elif zP1:
+            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(zP1)}' + ' -di              \\')
 
         else:
             script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
@@ -365,7 +365,6 @@ def convert(
     if not savedargs.dir:
         savedargs.dir = '.'
     
-    savedargs.ser = ser
 
     # Check if directory exists
     if not os.path.exists(savedargs.dir):
@@ -405,14 +404,13 @@ def convert(
 @app.command()
 def phasecheck(
     dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    phase0: Optional[float] = Option(0.0, "--phase0", help="Phase 0 correction"),
-    phase1: Optional[float] = Option(0.0, "--phase1", help="Phase 1 correction"),
+    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0 correction"),
+    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1 correction"),
     no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
     ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
-    ser: str = Option('ser', "--ser", help="Name of the ser file")
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn")
 ):
     """Check phase correction in first dimension."""
     savedargs = load_saved_args()
@@ -426,7 +424,6 @@ def phasecheck(
     if not savedargs.dir:
         savedargs.dir = '.'
     
-    savedargs.ser = ser
     savedargs.EXT_L = ext_l
     savedargs.EXT_R = ext_r
     savedargs.EXT_x1 = ext_x1
@@ -440,13 +437,11 @@ def phasecheck(
         typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
         raise typer.Exit(1)
     
-    if phase0 and phase1:
-        savedargs.phase0 = phase0
-        savedargs.phase1 = phase1
-    elif phase0:
-        savedargs.phase0 = phase0
-    elif phase1:
-        savedargs.phase1 = phase1
+    # Always update phase values if provided on command line
+    if x_p0 is not None:
+        savedargs.phase0 = x_p0
+    if x_p1 is not None:
+        savedargs.phase1 = x_p1
     
     data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
     
@@ -465,83 +460,14 @@ def phasecheck(
     save_args(savedargs)
 
 @app.command()
-def phase(
-    dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    phase0: Optional[float] = Option(0.0, "--phase0", help="Phase 0 correction"),
-    phase1: Optional[float] = Option(0.0, "--phase1", help="Phase 1 correction"),
-    no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
-    ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
-    ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
-    ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
-    ser: str = Option('ser', "--ser", help="Name of the ser file")
-):
-    """Apply phase correction in first dimension."""
-    savedargs = load_saved_args()
-    
-    if not savedargs.beenConverted:
-        typer.echo("❌ Error: You need to convert the data from Bruker to nmrPipe format first", err=True)
-        raise typer.Exit(1)
-    
-    if dir:
-        savedargs.dir = dir
-    if not savedargs.dir:
-        savedargs.dir = '.'
-    
-    savedargs.ser = ser
-    savedargs.EXT_L = ext_l
-    savedargs.EXT_R = ext_r
-    savedargs.EXT_x1 = ext_x1
-    savedargs.EXT_xn = ext_xn
-    savedargs.noSOL = no_sol
-    
-    if ext_x1 and not ext_xn:
-        typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
-        raise typer.Exit(1)
-    if not ext_x1 and ext_xn:
-        typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
-        raise typer.Exit(1)
-    
-    if phase0 and phase1:
-        savedargs.phase0 = phase0
-        savedargs.phase1 = phase1
-    elif phase0:
-        savedargs.phase0 = phase0
-    elif phase1:
-        savedargs.phase1 = phase1
-    
-    data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
-    
-    data.genDirectPhaseCheck('phase.com', 
-                                phase0=savedargs.phase0, 
-                                phase1=savedargs.phase1, 
-                                ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn], 
-                                sol=savedargs.noSOL)
-
-    os.system('chmod 770 phase.com')
-    typer.echo("🔄 Applying phase correction (phase.com)")
-    os.system('./phase.com')
-    savedargs.beenPhased = True
-    
-    save_args(savedargs)
-
-@app.command()
 def reconstruct(
-    dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
     nsamples: Optional[int] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction"),
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
-    no_sol: bool = Option(False, "--noSOL", help="No solvent suppression"),
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
     x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
-    auto_n: bool = Option(False, "--autoN", help="Auto N option"),
-    ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
-    ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
-    ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
-    proc: Optional[int] = Option(None, "--proc", help="Number of processes"),
-    ser: str = Option('ser', "--ser", help="Name of the ser file")
+    auto_n: bool = Option(False, "--autoN", help="Auto N option")
 ):
     """Reconstruct the 3D NMR data."""
     savedargs = load_saved_args()
@@ -550,12 +476,9 @@ def reconstruct(
         typer.echo("❌ Error: You need to FT and phase the direct dimension first", err=True)
         raise typer.Exit(1)
     
-    if dir:
-        savedargs.dir = dir
     if not savedargs.dir:
         savedargs.dir = '.'
     
-    savedargs.ser = ser
     
     # Check if directory exists
     if not os.path.exists(savedargs.dir):
@@ -583,8 +506,6 @@ def reconstruct(
     else:
         savedargs.sthr = 0.98
         savedargs.ethr = 0.98
-    if no_sol:
-        savedargs.noSOL = no_sol
     if itr:
         savedargs.itr = itr
     if x_n and y_n:
@@ -594,8 +515,6 @@ def reconstruct(
         savedargs.autoN = auto_n
         savedargs.xN = 0
         savedargs.yN = 0
-    if proc:
-        savedargs.proc = proc
 
     data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
                                          phase1=savedargs.phase1, 
@@ -605,7 +524,7 @@ def reconstruct(
     typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
     os.system('./prepare4recon.com')
 
-    data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=savedargs.proc, itr=savedargs.itr,
+    data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=0, itr=savedargs.itr,
                     xN=savedargs.xN, yN=savedargs.yN, sthr=savedargs.sthr, ethr=savedargs.ethr)
     os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
     typer.echo("🔄 Performing Reconstruction (recon.py / hmsist.com)")
@@ -634,14 +553,12 @@ def reconstruct(
 
 @app.command()
 def ft(
-    dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
-    triplerez: bool = Option(False, "--triplerez", help="Triple resonance mode"),
-    xyz: bool = Option(False, "--xyz", help="Output xyz format"),
-    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0"),
-    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1"),
+    triplerez: bool = Option(False, "--triplerez", help="Assume processing params for standard Bruker triple resonance experiments"),
+    xyz: bool = Option(False, "--xyz", help="Output nmrPipe xyz format in addition to 3Dspectrum.dat"),
     y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
     y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
-    ser: str = Option('ser', "--ser", help="Name of the ser file")
+    z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1")
 ):
     """Perform final Fourier transform of indirect dimensions."""
     savedargs = load_saved_args()
@@ -650,22 +567,19 @@ def ft(
         typer.echo("❌ Error: You need to do a reconstruction of the data before the final FT", err=True)
         raise typer.Exit(1)
     
-    if dir:
-        savedargs.dir = dir
     if not savedargs.dir:
         savedargs.dir = '.'
     
-    savedargs.ser = ser
     savedargs.triplerez = triplerez
     savedargs.xyz = xyz
-    savedargs.xP0 = x_p0
-    savedargs.xP1 = x_p1
     savedargs.yP0 = y_p0
     savedargs.yP1 = y_p1
+    savedargs.zP0 = z_p0
+    savedargs.zP1 = z_p1
 
     data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
     data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, 
-               xyz=savedargs.xyz, xP0=savedargs.xP0, yP0=savedargs.yP0, xP1=savedargs.xP1, yP1=savedargs.yP1)
+               xyz=savedargs.xyz, yP0=savedargs.yP0, zP0=savedargs.zP0, yP1=savedargs.yP1, zP1=savedargs.zP1)
     typer.echo("🔄 Performing Indirect Fourier Transforms (ft.com)")
     os.system('chmod 770 ft.com')
     os.system('./ft.com')
@@ -696,8 +610,8 @@ def workflow(
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
-    phase0: Optional[float] = Option(0.0, "--phase0", help="Phase 0 correction"),
-    phase1: Optional[float] = Option(0.0, "--phase1", help="Phase 1 correction"),
+    x_p0: Optional[float] = Option(0.0, "--xP0", help="X phase 0 correction"),
+    x_p1: Optional[float] = Option(0.0, "--xP1", help="X phase 1 correction"),
     ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
@@ -706,14 +620,12 @@ def workflow(
     x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
     auto_n: bool = Option(False, "--autoN", help="Auto N option"),
-    proc: Optional[int] = Option(None, "--proc", help="Number of processes"),
-    triplerez: bool = Option(False, "--triplerez", help="Triple resonance mode"),
-    xyz: bool = Option(False, "--xyz", help="Output xyz format"),
-    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0"),
-    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1"),
+    triplerez: bool = Option(False, "--triplerez", help="Assume processing params for standard Bruker triple resonance experiments"),
+    xyz: bool = Option(False, "--xyz", help="Output nmrPipe xyz format in addition to 3Dspectrum.dat"),
     y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
     y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
-    ser: str = Option('ser', "--ser", help="Name of the ser file"),
+    z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
     convert_only: bool = Option(False, "--convert-only", help="Only run conversion"),
     phase_only: bool = Option(False, "--phase-only", help="Only run phase correction"),
     reconstruct_only: bool = Option(False, "--reconstruct-only", help="Only run reconstruction"),
@@ -736,23 +648,22 @@ def workflow(
     # Run phase unless convert-only, reconstruct-only, or ft-only is specified
     if not any([convert_only, reconstruct_only, ft_only]):
         typer.echo("🔄 Applying phase correction...")
-        phase(dir=dir, phase0=phase0, phase1=phase1, no_sol=no_sol, 
-              ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, ser=ser)
+        phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol, 
+                   ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn)
         typer.echo("✅ Phase correction completed!")
     
     # Run reconstruct unless convert-only, phase-only, or ft-only is specified
     if not any([convert_only, phase_only, ft_only]):
         typer.echo("🔄 Reconstructing 3D NMR data...")
-        reconstruct(dir=dir, nsamples=nsamples, sthr=sthr, ethr=ethr, no_sol=no_sol,
-                   itr=itr, x_n=x_n, y_n=y_n, auto_n=auto_n, ext_l=ext_l, ext_r=ext_r,
-                   ext_x1=ext_x1, ext_xn=ext_xn, proc=proc, ser=ser)
+        reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr,
+                   itr=itr, x_n=x_n, y_n=y_n, auto_n=auto_n)
         typer.echo("✅ Reconstruction completed!")
     
     # Run FT unless convert-only, phase-only, or reconstruct-only is specified
     if not any([convert_only, phase_only, reconstruct_only]):
         typer.echo("🔄 Performing final Fourier transform...")
-        ft(dir=dir, triplerez=triplerez, xyz=xyz, x_p0=x_p0, x_p1=x_p1, 
-           y_p0=y_p0, y_p1=y_p1, ser=ser)
+        ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, 
+           z_p0=z_p0, z_p1=z_p1)
         typer.echo("✅ Final Fourier transform completed!")
     
     if not any(only_options):
