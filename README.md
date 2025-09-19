@@ -1,17 +1,29 @@
-# MHI2D - hmsIST NUS Processing Script Generator
+# MHI2D & MHI3D - hmsIST NUS Processing Script Generators
 
-MHI2D is a modernized, semi-automatic script generator for processing **Bruker formatted** non-uniformly sampled **2-dimensional** data using the **hmsIST program**. It leverages the **nmrPipe** data format and Fourier Transform functions to streamline the reconstruction process.
+MHI2D and MHI3D are modernized, semi-automatic script generators for processing **Bruker formatted** non-uniformly sampled **2-dimensional and 3-dimensional** data using the **hmsIST program**. They leverage the **nmrPipe** data format and Fourier Transform functions to streamline the reconstruction process.
+
+- **MHI2D**: For 2D NMR data processing
+- **MHI3D**: For 3D NMR data processing with automatic 2D projection generation
 
 ## Overview
 
 The basic workflow for non-uniformly sampled data reconstruction involves:
 
+### 2D Data (MHI2D)
 1. **Conversion** from Bruker format to nmrPipe format
 2. **Processing** with nmrPipe functions of the direct dimension
 3. **Reconstruction** of the indirect dimension using hmsIST
 4. **Processing** with nmrPipe functions of the indirect dimension
 
-MHI2D automates this process by generating and executing the necessary scripts, while providing a modern command-line interface with comprehensive validation and user feedback.
+### 3D Data (MHI3D)
+1. **Conversion** from Bruker format to nmrPipe format
+2. **Phase checking** and correction for all three dimensions
+3. **Reconstruction** of the indirect dimensions using hmsIST
+4. **Fourier transforms** for all dimensions
+5. **Automatic generation** of 2D projections and 3D spectrum
+6. **Automatic display** of all projections in nmrDraw
+
+Both MHI2D and MHI3D automate these processes by generating and executing the necessary scripts, while providing a modern command-line interface with comprehensive validation and user feedback.
 
 ## Installation
 
@@ -20,25 +32,27 @@ MHI2D automates this process by generating and executing the necessary scripts, 
 pip install -r requirements.txt
 ```
 
-2. Move the MHI2D file to the same execution directory as nmrPipe and make it executable:
+2. Move the MHI2D and MHI3D files to the same execution directory as nmrPipe and make them executable:
 ```bash
-chmod +x MHI2D
+chmod +x MHI2D MHI3D
 ```
 
 ## Quick Start
 
-### Basic Workflow (Recommended)
-The simplest way to process your data is using the workflow command:
+### 2D Data Processing (MHI2D)
+
+#### Basic Workflow (Recommended)
+The simplest way to process your 2D data is using the workflow command:
 
 ```bash
-# Process data in current directory
+# Process 2D data in current directory
 MHI2D workflow --dir /path/to/bruker/data
 
 # Process with custom parameters
 MHI2D workflow --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
 
-### Step-by-Step Processing
+#### Step-by-Step Processing
 For more control, you can run each step individually:
 
 ```bash
@@ -49,9 +63,41 @@ MHI2D convert --dir /path/to/data --nsamples 100
 MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
 
+### 3D Data Processing (MHI3D)
+
+#### Basic Workflow (Recommended)
+The simplest way to process your 3D data is using the workflow command:
+
+```bash
+# Process 3D data with automatic projections
+MHI3D workflow --dir /path/to/bruker/data --nsamples 100
+
+# Process with custom parameters
+MHI3D workflow --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95 --xP0 0.0 --xP1 0.0
+```
+
+#### Step-by-Step Processing
+For more control, you can run each step individually:
+
+```bash
+# Step 1: Convert Bruker data to nmrPipe format
+MHI3D convert --dir /path/to/data --nsamples 100
+
+# Step 2: Check and set phase corrections
+MHI3D phasecheck --xP0 0.0 --xP1 0.0
+
+# Step 3: Reconstruct the NMR data
+MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+
+# Step 4: Perform Fourier transforms and generate projections
+MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+```
+
 ## Commands
 
-### Convert
+### MHI2D Commands
+
+#### Convert
 Converts Bruker data to nmrPipe format.
 
 ```bash
@@ -62,7 +108,7 @@ MHI2D convert --dir /path/to/data --nsamples 100
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples to convert
 
-### Reconstruct
+#### Reconstruct
 Reconstructs the NMR data using hmsIST.
 
 ```bash
@@ -84,7 +130,7 @@ MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 - `--itr`: Iteration option
 - `--noDraw`: Skip automatic spectrum display
 
-### Workflow
+#### Workflow
 Runs both convert and reconstruct in sequence.
 
 ```bash
@@ -98,7 +144,7 @@ MHI2D workflow --dir /path/to/data --convert-only
 MHI2D workflow --dir /path/to/data --reconstruct-only
 ```
 
-### Clean
+#### Clean
 Removes processing files, keeping only projections and spectrum files.
 
 ```bash
@@ -106,11 +152,105 @@ MHI2D clean
 MHI2D clean --force  # Skip confirmation prompt
 ```
 
+### MHI3D Commands
+
+#### Convert
+Converts Bruker 3D data to nmrPipe format.
+
+```bash
+MHI3D convert --dir /path/to/data --nsamples 100
+```
+
+**Options:**
+- `--dir, -d`: Data directory path
+- `--nsamples, -n`: Number of samples to convert
+- `--noSOL`: Skip solvent suppression
+- `--EXT_L, --EXT_R`: Extract left/right regions
+- `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
+
+#### Phasecheck
+Checks and sets phase corrections for all three dimensions.
+
+```bash
+MHI3D phasecheck --xP0 0.0 --xP1 0.0
+```
+
+**Options:**
+- `--xP0, --xP1`: X dimension phase corrections
+- `--yP0, --yP1`: Y dimension phase corrections  
+- `--zP0, --zP1`: Z dimension phase corrections
+
+#### Reconstruct
+Reconstructs the 3D NMR data using hmsIST.
+
+```bash
+MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+```
+
+**Options:**
+- `--nsamples, -n`: Number of samples for reconstruction
+- `--sthr`: Start threshold [default: 0.98]
+- `--ethr`: End threshold [default: 0.98]
+- `--yN`: Y dimension size
+- `--zN`: Z dimension size
+- `--autoN`: Auto-determine N
+- `--itr`: Iteration option
+
+#### FT (Fourier Transform)
+Performs Fourier transforms and generates 2D projections.
+
+```bash
+MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+```
+
+**Options:**
+- `--yP0, --yP1`: Y dimension phase corrections
+- `--zP0, --zP1`: Z dimension phase corrections
+- `--triplerez`: Assume processing params for standard Bruker triple resonance experiments
+- `--yACQ`: Y dimension acquired
+- `--zACQ`: Z dimension acquired
+- `--xyz`: Output nmrPipe xyz format in addition to 3Dspectrum.dat
+
+#### Workflow
+Runs the complete 3D processing pipeline.
+
+```bash
+# Run complete 3D workflow
+MHI3D workflow --dir /path/to/data --nsamples 100
+
+# Run with custom phase corrections
+MHI3D workflow --dir /path/to/data --nsamples 100 --xP0 0.0 --xP1 0.0 --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+
+# Run only specific steps
+MHI3D workflow --dir /path/to/data --convert-only
+MHI3D workflow --dir /path/to/data --phasecheck-only
+MHI3D workflow --dir /path/to/data --reconstruct-only
+MHI3D workflow --dir /path/to/data --ft-only
+```
+
+#### Clean
+Removes processing files, keeping only projections and spectrum files.
+
+```bash
+MHI3D clean
+MHI3D clean --force  # Skip confirmation prompt
+```
+
 ## Required Files
 
+### 2D Data (MHI2D)
 The Bruker data directory must contain:
 - `acqus` - Acquisition parameters for dimension 1
 - `acqu2s` - Acquisition parameters for dimension 2
+- `ser` - Raw data file
+- `pulseprogram` or `pulseprogram.precomp` - Pulse sequence
+- `nuslist` - Non-uniform sampling list
+
+### 3D Data (MHI3D)
+The Bruker data directory must contain:
+- `acqus` - Acquisition parameters for dimension 1
+- `acqu2s` - Acquisition parameters for dimension 2
+- `acqu3s` - Acquisition parameters for dimension 3
 - `ser` - Raw data file
 - `pulseprogram` or `pulseprogram.precomp` - Pulse sequence
 - `nuslist` - Non-uniform sampling list
@@ -133,6 +273,14 @@ The Bruker data directory must contain:
 - **Persistent settings**: Command-line options are saved between runs
 - **Flexible overrides**: Change any parameter at any time
 - **Directory validation**: Ensures data directory exists and contains valid Bruker data
+
+### MHI3D-Specific Features
+- **Automatic 2D projection generation**: Creates all possible 2D projections from 3D data
+- **Intelligent projection naming**: Automatically names projections based on nucleus types (e.g., `1H.13C.dat`, `13C.15N.dat`)
+- **Automatic nmrDraw launching**: Opens all projections in nmrDraw with proper window positioning
+- **3D spectrum generation**: Creates `3Dspectrum.dat` for full 3D analysis
+- **Multi-dimensional phase correction**: Handles phase corrections for all three dimensions
+- **Nucleus detection**: Automatically detects H, C, N, F nuclei across all dimensions
 
 ## Common Processing Scenarios
 
@@ -207,12 +355,29 @@ MHI2D reconstruct --dir /path/to/data --noDraw
 
 ## Output Files
 
-After successful processing, you'll find:
+### MHI2D Output Files
+After successful 2D processing, you'll find:
 - `test.fid` - Converted nmrPipe data
-- `2Dspectrum.dat` - Final reconstructed spectrum
+- `2Dspectrum.dat` - Final reconstructed 2D spectrum
 - `convert.com` - Conversion script
 - `proc.com` - Processing script
 - `nuslist.used` - NUS list used for reconstruction
+
+### MHI3D Output Files
+After successful 3D processing, you'll find:
+- `test.fid` - Converted nmrPipe data
+- `3Dspectrum.dat` - Final reconstructed 3D spectrum
+- `1H.13C.dat` - 2D projection (1H vs 13C)
+- `1H.15N.dat` - 2D projection (1H vs 15N)
+- `13C.15N.dat` - 2D projection (13C vs 15N)
+- `convert.com` - Conversion script
+- `phase.com` - Phase correction script
+- `prepare4recon.com` - Pre-reconstruction script
+- `recon.com` - Reconstruction script
+- `ft.com` - Fourier transform script
+- `nuslist.used` - NUS list used for reconstruction
+
+**Note**: The exact names of 2D projection files depend on the nucleus types detected in your 3D experiment. MHI3D automatically generates all possible 2D projections and names them appropriately.
 
 ## Troubleshooting
 
@@ -236,25 +401,42 @@ After successful processing, you'll find:
 
 ### Getting Help
 ```bash
-# General help
+# MHI2D help
 MHI2D --help
-
-# Command-specific help
 MHI2D convert --help
 MHI2D reconstruct --help
 MHI2D workflow --help
+
+# MHI3D help
+MHI3D --help
+MHI3D convert --help
+MHI3D phasecheck --help
+MHI3D reconstruct --help
+MHI3D ft --help
+MHI3D workflow --help
 ```
 
 ## Technical Details
 
+### MHI2D Scripts
 MHI2D generates and executes the following scripts:
 - **convert.com**: Converts Bruker data to nmrPipe format using `bruk2pipe`
 - **proc.com**: Processes data with nmrPipe functions and hmsIST reconstruction
 
-The script automatically detects:
+### MHI3D Scripts
+MHI3D generates and executes the following scripts:
+- **convert.com**: Converts Bruker data to nmrPipe format using `bruk2pipe`
+- **phase.com**: Phase correction script for all three dimensions
+- **prepare4recon.com**: Pre-reconstruction processing script
+- **recon.com**: hmsIST reconstruction script
+- **ft.com**: Fourier transform script for all dimensions
+
+### Automatic Detection
+Both scripts automatically detect:
 - Data dimensions and acquisition modes
 - Nucleus types (H, F, C, N) from acqus files
 - Required processing parameters from Bruker files
+- 3D projection naming based on nucleus combinations (MHI3D only)
 
 ## Requirements
 
