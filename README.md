@@ -78,41 +78,32 @@ For 3D data, it's recommended to process step-by-step to ensure proper phase che
 
 ```bash
 # Step 1: Convert Bruker data to nmrPipe format
-MHI3D convert --dir /path/to/bruker/data --nsamples 100
-
-# Step 2: Check and set phase corrections (CRITICAL STEP)
-MHI3D phasecheck --xP0 0.0 --xP1 0.0
-
-# Step 3: Reconstruct the 3D NMR data
-MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
-
-# Step 4: Perform Fourier transforms and generate projections
-MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
-```
-
-#### Step-by-Step Processing
-For more control, you can run each step individually:
-
-```bash
-# Step 1: Convert Bruker data to nmrPipe format
 MHI3D convert --dir /path/to/data --nsamples 100
 # Or using alias:
 MHI3D C --dir /path/to/data --nsamples 100
 
 # Step 2: Check and set phase corrections
-MHI3D phasecheck --xP0 0.0 --xP1 0.0
+MHI3D phasecheck 
 # Or using alias:
-MHI3D PC --xP0 0.0 --xP1 0.0
+MHI3D PC 
+
+This step launches an nmrDraw window, which will allow you to discover the phases and extraction required for your direct dimension. You will iteratively work this step putting in values determined. E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
+
+N.B. Solvent supression is on by default. Turn it off with --noSOL
+
+MHI3D phasecheck --xP0 0.0 --xP1 0.0 --EXT_L
+# Or using alias:
+MHI3D PC --xP0 0.0 --xP1 0.0 --EXT_L
 
 # Step 3: Reconstruct the NMR data
-MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+MHI3D reconstruct --sthr 0.95 --ethr 0.95
 # Or using alias:
-MHI3D R --nsamples 100 --sthr 0.95 --ethr 0.95
+MHI3D R --sthr 0.95 --ethr 0.95
 
 # Step 4: Perform Fourier transforms and generate projections
-MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+MHI3D ft 
 # Or using alias:
-MHI3D FT --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+MHI3D FT 
 ```
 
 ## Commands
