@@ -228,7 +228,8 @@ if args.recon: # requested a reconstruction of the data
         savedargs.sthr = 0.98
         savedargs.ethr = 0.98
 
-
+    if (args.noSOL):
+        savedargs.noSOL = args.noSOL
     if (args.proc):
         savedargs.proc = args.proc
     if (args.itr):
