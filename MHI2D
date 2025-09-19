@@ -405,15 +405,6 @@ def workflow(
     if not convert_only and not reconstruct_only:
         typer.echo("🎉 Workflow completed successfully!")
 
-@app.command()
-def phasecheck():
-    """Check phase information."""
-    typer.echo("Phase check functionality - to be implemented")
-
-@app.command()
-def phase():
-    """Phase correction functionality."""
-    typer.echo("Phase correction functionality - to be implemented")
 
 if __name__ == "__main__":
     app()
