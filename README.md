@@ -426,9 +426,10 @@ MHI2D generates and executes the following scripts:
 ### MHI3D Scripts
 MHI3D generates and executes the following scripts:
 - **convert.com**: Converts Bruker data to nmrPipe format using `bruk2pipe`
-- **phase.com**: Phase correction script for all three dimensions
-- **prepare4recon.com**: Pre-reconstruction processing script
-- **recon.com**: hmsIST reconstruction script
+- **phase.com**: Phase correction script for the direct dimension
+- **prepare4recon.com**: Pre-reconstruction processing script - transforms, extracts and phases all acquired FIDs
+- **recon.com**: hmsIST reconstruction script that feeds CPUs with data to reconstruct. It launches:
+    - **hmist.com**: The wrapper around the hmsIST function
 - **ft.com**: Fourier transform script for all dimensions
 
 ### Automatic Detection
