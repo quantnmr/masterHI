@@ -655,5 +655,57 @@ def clean(
     os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
     typer.echo("Cleaning completed.")
 
+# Add command aliases
+@app.command("C")
+def convert_alias(
+    dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples to convert (or 'all' for all samples)"),
+    ser: str = Option('ser', "--ser", help="Name of the ser file")
+):
+    """Alias for convert command."""
+    convert(dir=dir, nsamples=nsamples, ser=ser)
+
+@app.command("PC")
+def phasecheck_alias(
+    dir: Optional[str] = Option(None, "--dir", "-d", help="Data directory path"),
+    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0 correction"),
+    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1 correction"),
+    no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
+    ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
+    ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
+    ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn")
+):
+    """Alias for phasecheck command."""
+    phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol, 
+               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn)
+
+@app.command("R")
+def reconstruct_alias(
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples for reconstruction (or 'all' for all samples)"),
+    sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
+    ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
+    itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
+    x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
+    y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
+    auto_n: bool = Option(False, "--autoN", help="Auto N option")
+):
+    """Alias for reconstruct command."""
+    reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr, itr=itr, 
+               x_n=x_n, y_n=y_n, auto_n=auto_n)
+
+@app.command("FT")
+def ft_alias(
+    triplerez: bool = Option(False, "--triplerez", help="Assume processing params for standard Bruker triple resonance experiments"),
+    xyz: bool = Option(False, "--xyz", help="Output nmrPipe xyz format in addition to 3Dspectrum.dat"),
+    y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
+    y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
+    z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1")
+):
+    """Alias for ft command."""
+    ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, 
+       z_p0=z_p0, z_p1=z_p1)
+
 if __name__ == "__main__":
     app()

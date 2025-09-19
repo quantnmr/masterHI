@@ -88,15 +88,23 @@ For more control, you can run each step individually:
 ```bash
 # Step 1: Convert Bruker data to nmrPipe format
 MHI3D convert --dir /path/to/data --nsamples 100
+# Or using alias:
+MHI3D C --dir /path/to/data --nsamples 100
 
 # Step 2: Check and set phase corrections
 MHI3D phasecheck --xP0 0.0 --xP1 0.0
+# Or using alias:
+MHI3D PC --xP0 0.0 --xP1 0.0
 
 # Step 3: Reconstruct the NMR data
 MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+# Or using alias:
+MHI3D R --nsamples 100 --sthr 0.95 --ethr 0.95
 
 # Step 4: Perform Fourier transforms and generate projections
 MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
+# Or using alias:
+MHI3D FT --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 ```
 
 ## Commands
@@ -161,6 +169,12 @@ MHI2D clean --force  # Skip confirmation prompt
 ```
 
 ### MHI3D Commands
+
+**Command Aliases:**
+- `C` - Alias for `convert`
+- `PC` - Alias for `phasecheck`  
+- `R` - Alias for `reconstruct`
+- `FT` - Alias for `ft`
 
 #### Convert
 Converts Bruker 3D data to nmrPipe format.
