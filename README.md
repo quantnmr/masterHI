@@ -47,9 +47,13 @@ The simplest way to process your 2D data is using the workflow command:
 ```bash
 # Process 2D data in current directory
 MHI2D workflow --dir /path/to/bruker/data
+# Or using alias:
+MHI2D W --dir /path/to/bruker/data
 
 # Process with custom parameters
 MHI2D workflow --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
+# Or using alias:
+MHI2D W --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
 
 #### Step-by-Step Processing
@@ -58,9 +62,13 @@ For more control, you can run each step individually:
 ```bash
 # Step 1: Convert Bruker data to nmrPipe format
 MHI2D convert --dir /path/to/data --nsamples 100
+# Or using alias:
+MHI2D C --dir /path/to/data --nsamples 100
 
 # Step 2: Reconstruct the NMR data
 MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
+# Or using alias:
+MHI2D R --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
 
 ### 3D Data Processing (MHI3D)
@@ -110,6 +118,11 @@ MHI3D FT --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 ## Commands
 
 ### MHI2D Commands
+
+**Command Aliases:**
+- `C` - Alias for `convert`
+- `R` - Alias for `reconstruct`  
+- `W` - Alias for `workflow`
 
 #### Convert
 Converts Bruker data to nmrPipe format.
