@@ -2,8 +2,8 @@
 
 MHI2D and MHI3D are modernized, semi-automatic script generators for processing **Bruker formatted** non-uniformly sampled **2-dimensional and 3-dimensional** data using the **hmsIST program**. They leverage the **nmrPipe** data format and Fourier Transform functions to streamline the reconstruction process.
 
-- **MHI2D**: For 2D NMR data processing
-- **MHI3D**: For 3D NMR data processing with automatic 2D projection generation
+- **MHI2D**: For 2D NMR data processing with nmrDraw preview for phase correction.
+- **MHI3D**: For 3D NMR data processing with automatic 2D projection generation .
 
 ## Overview
 
@@ -12,14 +12,14 @@ The basic workflow for non-uniformly sampled data reconstruction involves:
 ### 2D Data (MHI2D)
 1. **Conversion** from Bruker format to nmrPipe format
 2. **Reconstruction** of the indirect dimension using hmsIST while **FT Processing and Phasing** the direct and indirect dimensions
-3. **Review** with nmrDraw so phases and be adjusted
+3. **Review** with nmrDraw so phases, processing modes, extyractions can be adjusted
 
 
 ### 3D Data (MHI3D)
 1. **Conversion** from Bruker format to nmrPipe format
-2. **Phase checking** and correction for the direct dimension
+2. **Phase checking** and correction for the direct dimension (manual step - critical for quality)
 3. **Reconstruction** of the indirect dimensions using hmsIST
-4. **Fourier transforms** for indcirect dimensiojmns with automatic phase detection or manual setting
+4. **Fourier transforms** for indirect dimensions with automatic phase detection or manual setting
 5. **Automatic generation** of 2D projections and 3D spectrum 
 6. **Automatic display** of all projections in nmrDraw for phase checking
 
@@ -65,15 +65,21 @@ MHI2D reconstruct --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 
 ### 3D Data Processing (MHI3D)
 
-#### Basic Workflow (Recommended)
-The simplest way to process your 3D data is using the workflow command:
+#### Recommended Processing Approach
+For 3D data, it's recommended to process step-by-step to ensure proper phase checking:
 
 ```bash
-# Process 3D data with automatic projections
-MHI3D workflow --dir /path/to/bruker/data --nsamples 100
+# Step 1: Convert Bruker data to nmrPipe format
+MHI3D convert --dir /path/to/bruker/data --nsamples 100
 
-# Process with custom parameters
-MHI3D workflow --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95 --xP0 0.0 --xP1 0.0
+# Step 2: Check and set phase corrections (CRITICAL STEP)
+MHI3D phasecheck --xP0 0.0 --xP1 0.0
+
+# Step 3: Reconstruct the 3D NMR data
+MHI3D reconstruct --nsamples 100 --sthr 0.95 --ethr 0.95
+
+# Step 4: Perform Fourier transforms and generate projections
+MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 ```
 
 #### Step-by-Step Processing
@@ -211,22 +217,6 @@ MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 - `--zACQ`: Z dimension acquired
 - `--xyz`: Output nmrPipe xyz format in addition to 3Dspectrum.dat
 
-#### Workflow
-Runs the complete 3D processing pipeline.
-
-```bash
-# Run complete 3D workflow
-MHI3D workflow --dir /path/to/data --nsamples 100
-
-# Run with custom phase corrections
-MHI3D workflow --dir /path/to/data --nsamples 100 --xP0 0.0 --xP1 0.0 --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
-
-# Run only specific steps
-MHI3D workflow --dir /path/to/data --convert-only
-MHI3D workflow --dir /path/to/data --phasecheck-only
-MHI3D workflow --dir /path/to/data --reconstruct-only
-MHI3D workflow --dir /path/to/data --ft-only
-```
 
 #### Clean
 Removes processing files, keeping only projections and spectrum files.
@@ -413,7 +403,6 @@ MHI3D convert --help
 MHI3D phasecheck --help
 MHI3D reconstruct --help
 MHI3D ft --help
-MHI3D workflow --help
 ```
 
 ## Technical Details
