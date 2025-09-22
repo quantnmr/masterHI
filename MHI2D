@@ -270,6 +270,12 @@ def reconstruct(
         savedargs.ethr = 0.98
     if no_sol:
         savedargs.noSOL = no_sol
+    else:
+        # Auto-detect if solvent suppression should be disabled based on direct dimension nucleus
+        data = Bruker2D(savedargs.dir)
+        if data.valid and data.xLAB and data.xLAB.upper() not in ['1H', 'H']:
+            savedargs.noSOL = True
+            typer.echo(f"🔍 Direct dimension is {data.xLAB} - automatically disabling solvent suppression")
     if itr:
         savedargs.itr = itr
     if y_n:
@@ -280,7 +286,7 @@ def reconstruct(
 
     # Generate processing script
     script = ['#!/bin/csh', 'nmrPipe -in test.fid \\']
-    if not no_sol:
+    if not savedargs.noSOL:
         script.append('| nmrPipe -fn SOL \\')
 
     script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto                       \\', '| nmrPipe  -fn FT  -auto                           \\'))

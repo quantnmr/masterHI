@@ -437,6 +437,13 @@ def phasecheck(
     savedargs.EXT_xn = ext_xn
     savedargs.noSOL = no_sol
     
+    # Auto-detect if solvent suppression should be disabled based on direct dimension nucleus
+    if not no_sol:  # Only auto-detect if user didn't explicitly set noSOL
+        data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
+        if data.valid and data.xLAB and data.xLAB.upper() not in ['1H', 'H']:
+            savedargs.noSOL = True
+            typer.echo(f"🔍 Direct dimension is {data.xLAB} - automatically disabling solvent suppression")
+    
     if ext_x1 and not ext_xn:
         typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
         raise typer.Exit(1)
