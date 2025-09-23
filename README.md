@@ -146,6 +146,8 @@ MHI2D reconstruct --dir /path/to/data --nsamples all --sthr 0.95 --ethr 0.95
 - `--noSOL`: Skip solvent suppression
 - `--xP0, --xP1`: X dimension phase corrections
 - `--yP0, --yP1`: Y dimension phase corrections
+- `--xZF`: X dimension zero filling factor
+- `--yZF`: Y dimension zero filling factor
 - `--EXT_L, --EXT_R`: Extract left/right regions
 - `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
 - `--yN`: Y dimension size
@@ -362,6 +364,29 @@ MHI2D reconstruct --dir /path/to/data --nsamples all
 # Custom thresholds and no solvent suppression
 MHI2D workflow --dir /path/to/data --sthr 0.95 --ethr 0.95 --noSOL
 ```
+
+### Zero Filling Control
+Control zero filling for each dimension independently:
+
+```bash
+# Different zero filling for each dimension
+MHI2D reconstruct --dir /path/to/data --xZF 2 --yZF 4
+
+# Only set direct dimension zero filling
+MHI2D reconstruct --dir /path/to/data --xZF 2
+
+# Only set indirect dimension zero filling  
+MHI2D reconstruct --dir /path/to/data --yZF 4
+
+# Default behavior (auto (1) zero filling for both dimensions)
+MHI2D reconstruct --dir /path/to/data
+```
+
+**Zero Filling Options:**
+- `--xZF`: Controls zero filling for the direct (first) dimension
+- `--yZF`: Controls zero filling for the indirect (second) dimension
+- **Default**: Uses `-auto` for automatic zero filling (1 zero fill) when not specified
+- **Custom**: Use integer values (e.g., `--xZF 2`, `--yZF 4`) for specific zero filling factors
 
 ### Step-by-Step with Validation
 ```bash
