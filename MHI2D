@@ -139,6 +139,8 @@ class Options(object):
         self.yP0 = False
         self.xP1 = False
         self.yP1 = False
+        self.xZF = False
+        self.yZF = False
 
 def load_saved_args():
     if os.path.isfile('.masterHI.config'):
@@ -224,6 +226,8 @@ def reconstruct(
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
     ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
     no_draw: bool = Option(False, "--noDraw", help="Skip automatic spectrum display")
 ):
     """Reconstruct the NMR data."""
@@ -283,13 +287,26 @@ def reconstruct(
     if auto_n:
         savedargs.autoN = auto_n
         savedargs.xN = 0
+    if x_zf:
+        if not hasattr(savedargs, 'xZF'):
+            savedargs.xZF = False
+        savedargs.xZF = x_zf
+    if y_zf:
+        if not hasattr(savedargs, 'yZF'):
+            savedargs.yZF = False
+        savedargs.yZF = y_zf
 
     # Generate processing script
     script = ['#!/bin/csh', 'nmrPipe -in test.fid \\']
     if not savedargs.noSOL:
         script.append('| nmrPipe -fn SOL \\')
 
-    script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto                       \\', '| nmrPipe  -fn FT  -auto                           \\'))
+    script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
+    if hasattr(savedargs, 'xZF') and savedargs.xZF:
+        script.append(f'| nmrPipe  -fn ZF -zf {savedargs.xZF} -auto                       \\')
+    else:
+        script.append('| nmrPipe  -fn ZF -auto                       \\')
+    script.append('| nmrPipe  -fn FT  -auto                           \\')
 
     if x_p0 and x_p1:
         script.append(f'| nmrPipe  -fn PS -p0 {str(x_p0)} -p1 {str(x_p1)}' + ' -di              \\')
@@ -306,12 +323,22 @@ def reconstruct(
         script.append('| nmrPipe  -fn EXT -right -sw          \\')
     elif ext_x1 and ext_xn:
         script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
-
-    if y_n:
-        script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -xN {y_n} -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
-    else:
-        script.extend(('| nmrPipe  -fn TP \\', f'| hmsIST -autoN 1 -sched nuslist.used            \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\', '| nmrPipe  -fn FT -verb                       \\'))
     
+    script.append('| nmrPipe  -fn TP \\')
+   
+    if y_n:    
+        script.append(f'| hmsIST -xN {y_n} -sched nuslist.used            \\')
+    
+    else:  
+        script.append('| hmsIST -autoN 1 -sched nuslist.used            \\')
+        
+    script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
+    if hasattr(savedargs, 'yZF') and savedargs.yZF:
+        script.append(f'| nmrPipe  -fn ZF -zf {savedargs.yZF} -auto  \\')
+    else:
+        script.append('| nmrPipe  -fn ZF -auto  \\')
+    script.append('| nmrPipe  -fn FT -verb                       \\')
+
     if y_p0 and y_p1:
         script.append(f'| nmrPipe  -fn PS -p0 {str(y_p0)} -p1 {str(y_p1)}' + ' -di              \\')
     elif y_p0:
@@ -439,13 +466,15 @@ def reconstruct_alias(
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
     ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
     no_draw: bool = Option(False, "--noDraw", help="Skip automatic spectrum display")
 ):
     """Alias for reconstruct command."""
     reconstruct(dir=dir, nsamples=nsamples, sthr=sthr, ethr=ethr, no_sol=no_sol,
                 itr=itr, y_n=y_n, auto_n=auto_n, x_p0=x_p0, x_p1=x_p1,
                 y_p0=y_p0, y_p1=y_p1, ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1,
-                ext_xn=ext_xn, no_draw=no_draw)
+                ext_xn=ext_xn, x_zf=x_zf, y_zf=y_zf, no_draw=no_draw)
 
 @app.command("W")
 def workflow_alias(
