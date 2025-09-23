@@ -56,7 +56,7 @@ class Bruker2D(object):
                         byteorder = line.split()[-1]
                         if byteorder == '1':
                             self.byteorder = 'noaswap'
-                        if byteorder == '0':
+                        elif byteorder == '0':
                             self.byteorder = 'aswap'
                     if 'DECIM' in line:
                         self.decim = line.split()[1]
@@ -146,8 +146,7 @@ def load_saved_args():
     if os.path.isfile('.masterHI.config'):
         with open('.masterHI.config', 'rb') as file:
             return pickle.load(file)
-    else:
-        return Options()
+    return Options()
 
 def save_args(savedargs):
     with open('.masterHI.config', 'wb') as file:
@@ -190,9 +189,9 @@ def convert(
         else:
             try:
                 savedargs.nsamples = int(nsamples)
-            except ValueError:
+            except ValueError as e:
                 typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
     
     r = data.genConversion('convert.com', ns=int(savedargs.nsamples) if savedargs.nsamples else None)
 
@@ -263,9 +262,9 @@ def reconstruct(
         else:
             try:
                 savedargs.nsamples = int(nsamples)
-            except ValueError:
+            except ValueError as e:
                 typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
     if sthr and ethr:
         savedargs.sthr = sthr
         savedargs.ethr = ethr
@@ -434,8 +433,6 @@ def workflow(
             ext_x1=ext_x1, ext_xn=ext_xn, y_n=y_n, auto_n=auto_n, itr=itr, no_draw=no_draw
         )
         typer.echo("✅ Reconstruction completed!")
-    
-    if not convert_only and not reconstruct_only:
         typer.echo("🎉 Workflow completed successfully!")
 
 
