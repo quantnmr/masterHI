@@ -132,7 +132,7 @@ class Bruker3D(object):
             self.yCAR = float(self.yO1) / float(self.yBF1)
             self.zCAR = float(self.zO1) / float(self.zBF1)
 
-    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=False, sol=False):
+    def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None):
         ext_l = ext[0]
         ext_r = ext[1]
         ext_x1 = ext[2]
@@ -141,7 +141,13 @@ class Bruker3D(object):
 
         if sol == False:
             script.append('| nmrPipe -fn SOL \\')
-        script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\', '| nmrPipe  -fn ZF -auto                         \\', '| nmrPipe  -fn FT -verb                             \\', f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\'))
+        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
+        if x_zf:
+            script.append(f'| nmrPipe  -fn ZF -zf {x_zf} -auto                         \\')
+        else:
+            script.append('| nmrPipe  -fn ZF -auto                         \\')
+        script.append('| nmrPipe  -fn FT -verb                             \\')
+        script.append(f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\')
 
         if ext_l:
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
@@ -155,8 +161,15 @@ class Bruker3D(object):
             for item in script:
                 outfile.write("%s\n" % item)
 
-    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, yP0=False, yP1=False, zP0=False, zP1=False):
-        script = ['#!/bin/csh', '# hmsIST FT along indirect dimensions', 'xyz2pipe -in rec/data%03d.ft1 -x \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto                       \\']
+    def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, yP0=False, yP1=False, zP0=False, zP1=False, y_zf=None, z_zf=None):
+        script = ['#!/bin/csh']
+        script.append('# hmsIST FT along indirect dimensions')
+        script.append('xyz2pipe -in rec/data%03d.ft1 -x \\')
+        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
+        if y_zf:
+            script.append(f'| nmrPipe  -fn ZF -zf {y_zf} -auto                       \\')
+        else:
+            script.append('| nmrPipe  -fn ZF -auto                       \\')
 
         if triplerez == True or yACQ == '6':
             script.append('| nmrPipe  -fn FT -neg                             \\')
@@ -175,7 +188,12 @@ class Bruker3D(object):
 
         else:
             script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-        script.extend(('| nmrPipe  -fn TP \\', '| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\', '| nmrPipe  -fn ZF -auto  \\'))
+        script.append('| nmrPipe  -fn TP \\')
+        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
+        if z_zf:
+            script.append(f'| nmrPipe  -fn ZF -zf {z_zf} -auto  \\')
+        else:
+            script.append('| nmrPipe  -fn ZF -auto  \\')
 
         if triplerez == True:
             script.append('| nmrPipe  -fn FT -alt -verb                       \\')
@@ -206,7 +224,7 @@ class Bruker3D(object):
             for item in script:
                 outfile.write("%s\n" % item)
 
-    def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False):
+    def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None):
         ext_l = ext[0]
         ext_r = ext[1]
         ext_x1 = ext[2]
@@ -215,7 +233,13 @@ class Bruker3D(object):
 
         if sol == False:
             script.append('| nmrPipe -fn SOL \\')
-        script.extend(('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\', '| nmrPipe  -fn ZF -auto                         \\', '| nmrPipe  -fn FT -verb                             \\', f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\'))
+        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
+        if x_zf:
+            script.append(f'| nmrPipe  -fn ZF -zf {x_zf} -auto                         \\')
+        else:
+            script.append('| nmrPipe  -fn ZF -auto                         \\')
+        script.append('| nmrPipe  -fn FT -verb                             \\')
+        script.append(f'| nmrPipe  -fn PS -p0 {phase0} -p1 {phase1} -di              \\')
 
         if ext_l:
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
@@ -334,6 +358,9 @@ class Options(object):
         self.yP0 = False
         self.xP1 = False
         self.yP1 = False
+        self.xZF = False
+        self.yZF = False
+        self.zZF = False
 
         self.beenConverted = False
         self.beenPhased = False
@@ -417,7 +444,8 @@ def phasecheck(
     ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn")
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
     """Check phase correction in first dimension."""
     savedargs = load_saved_args()
@@ -436,6 +464,10 @@ def phasecheck(
     savedargs.EXT_x1 = ext_x1
     savedargs.EXT_xn = ext_xn
     savedargs.noSOL = no_sol
+    if x_zf:
+        if not hasattr(savedargs, 'xZF'):
+            savedargs.xZF = False
+        savedargs.xZF = x_zf
     
     # Auto-detect if solvent suppression should be disabled based on direct dimension nucleus
     if not no_sol:  # Only auto-detect if user didn't explicitly set noSOL
@@ -463,7 +495,8 @@ def phasecheck(
                                 phase0=savedargs.phase0, 
                                 phase1=savedargs.phase1, 
                                 ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn], 
-                                sol=savedargs.noSOL)
+                                sol=savedargs.noSOL,
+                                x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None)
 
     os.system('chmod 770 phase.com')
     typer.echo("🔄 Transforming first Samples Point to test phases (phase.com)")
@@ -540,7 +573,8 @@ def reconstruct(
     data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
                                          phase1=savedargs.phase1, 
                                          ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn],  
-                                         sol=savedargs.noSOL)
+                                         sol=savedargs.noSOL,
+                                         x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None)
     os.system('chmod 770 prepare4recon.com')
     typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
     os.system('./prepare4recon.com')
@@ -579,7 +613,9 @@ def ft(
     y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
     y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
     z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
-    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1")
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor")
 ):
     """Perform final Fourier transform of indirect dimensions."""
     savedargs = load_saved_args()
@@ -597,10 +633,20 @@ def ft(
     savedargs.yP1 = y_p1
     savedargs.zP0 = z_p0
     savedargs.zP1 = z_p1
+    if y_zf:
+        if not hasattr(savedargs, 'yZF'):
+            savedargs.yZF = False
+        savedargs.yZF = y_zf
+    if z_zf:
+        if not hasattr(savedargs, 'zZF'):
+            savedargs.zZF = False
+        savedargs.zZF = z_zf
 
     data = Bruker3D(savedargs.dir, ser_file=savedargs.ser)
     data.genFT('ft.com', triplerez=savedargs.triplerez, yACQ=data.yACQ, zACQ=data.zACQ, 
-               xyz=savedargs.xyz, yP0=savedargs.yP0, zP0=savedargs.zP0, yP1=savedargs.yP1, zP1=savedargs.zP1)
+               xyz=savedargs.xyz, yP0=savedargs.yP0, zP0=savedargs.zP0, yP1=savedargs.yP1, zP1=savedargs.zP1,
+               y_zf=savedargs.yZF if hasattr(savedargs, 'yZF') else None,
+               z_zf=savedargs.zZF if hasattr(savedargs, 'zZF') else None)
     typer.echo("🔄 Performing Indirect Fourier Transforms (ft.com)")
     os.system('chmod 770 ft.com')
     os.system('./ft.com')
@@ -681,11 +727,12 @@ def phasecheck_alias(
     ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
-    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn")
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
     """Alias for phasecheck command."""
     phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol, 
-               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn)
+               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf)
 
 @app.command("R")
 def reconstruct_alias(
@@ -708,11 +755,13 @@ def ft_alias(
     y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
     y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
     z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
-    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1")
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor")
 ):
     """Alias for ft command."""
     ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, 
-       z_p0=z_p0, z_p1=z_p1)
+       z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf)
 
 if __name__ == "__main__":
     app()

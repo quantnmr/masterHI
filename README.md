@@ -211,6 +211,7 @@ MHI3D phasecheck --xP0 0.0 --xP1 0.0
 - `--xP0, --xP1`: X dimension phase corrections
 - `--yP0, --yP1`: Y dimension phase corrections  
 - `--zP0, --zP1`: Z dimension phase corrections
+- `--xZF`: X dimension zero filling factor
 
 #### Reconstruct
 Reconstructs the 3D NMR data using hmsIST.
@@ -239,6 +240,8 @@ MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 **Options:**
 - `--yP0, --yP1`: Y dimension phase corrections
 - `--zP0, --zP1`: Z dimension phase corrections
+- `--yZF`: Y dimension zero filling factor
+- `--zZF`: Z dimension zero filling factor
 - `--triplerez`: Assume processing params for standard Bruker triple resonance experiments
 - `--yACQ`: Y dimension acquired
 - `--zACQ`: Z dimension acquired
@@ -387,6 +390,32 @@ MHI2D reconstruct --dir /path/to/data
 - `--yZF`: Controls zero filling for the indirect (second) dimension
 - **Default**: Uses `-auto` for automatic zero filling (1 zero fill) when not specified
 - **Custom**: Use integer values (e.g., `--xZF 2`, `--yZF 4`) for specific zero filling factors
+
+### MHI3D Zero Filling Control
+Control zero filling for each dimension independently in 3D processing:
+
+```bash
+# Most common: Only set indirect dimension zero filling (during FT)
+MHI3D ft --yZF 4                     # Y dimension only
+MHI3D ft --zZF 2                     # Z dimension only
+MHI3D ft --yZF 4 --zZF 2             # Both Y and Z dimensions
+
+# Less common: Set X dimension zero filling (rarely needed)
+MHI3D PC --xP0 0 --xP1 0 --xZF 2    # During phasecheck (rarely used)
+MHI3D R --xZF 2                      # During reconstruct (more relevant but still uncommon)
+
+# Default behavior (auto zero filling for all dimensions)
+MHI3D PC --xP0 0 --xP1 0
+MHI3D ft
+```
+
+**3D Zero Filling Options:**
+- `--xZF`: Controls zero filling for the direct (first) dimension (used in `phasecheck` and `reconstruct`)
+  - **Note**: Rarely needed for `phasecheck`; more relevant for `reconstruct` but typically not necessary for most applications
+- `--yZF`: Controls zero filling for the first indirect (second) dimension (used in `ft`)
+- `--zZF`: Controls zero filling for the second indirect (third) dimension (used in `ft`)
+- **Default**: Uses `-auto` for automatic zero filling (1 zero fill) when not specified
+- **Custom**: Use integer values (e.g., `--xZF 2`, `--yZF 4`, `--zZF 2`) for specific zero filling factors
 
 ### Step-by-Step with Validation
 ```bash
