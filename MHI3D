@@ -229,7 +229,7 @@ class Bruker3D(object):
         ext_r = ext[1]
         ext_x1 = ext[2]
         ext_xn = ext[3]
-        script = ['#!/bin/csh', '# hmsIST FT along direct dimension and prepare for reconstruction', 'xyz2pipe -in fid/data%03d.fid -x \\']
+        script = ['#!/bin/csh', '# hmsIST FT along direct dimension and prepare for reconstruction', 'rm -rf yzx', 'xyz2pipe -in fid/data%03d.fid -x \\']
 
         if sol == False:
             script.append('| nmrPipe -fn SOL \\')
@@ -514,7 +514,8 @@ def reconstruct(
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
     x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
-    auto_n: bool = Option(False, "--autoN", help="Auto N option")
+    auto_n: bool = Option(False, "--autoN", help="Auto N option"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
     """Reconstruct the 3D NMR data."""
     savedargs = load_saved_args()
@@ -569,6 +570,10 @@ def reconstruct(
         savedargs.autoN = auto_n
         savedargs.xN = 0
         savedargs.yN = 0
+    if x_zf:
+        if not hasattr(savedargs, 'xZF'):
+            savedargs.xZF = False
+        savedargs.xZF = x_zf
 
     data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
                                          phase1=savedargs.phase1, 
@@ -742,11 +747,12 @@ def reconstruct_alias(
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
     x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
-    auto_n: bool = Option(False, "--autoN", help="Auto N option")
+    auto_n: bool = Option(False, "--autoN", help="Auto N option"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
     """Alias for reconstruct command."""
     reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr, itr=itr, 
-               x_n=x_n, y_n=y_n, auto_n=auto_n)
+               x_n=x_n, y_n=y_n, auto_n=auto_n, x_zf=x_zf)
 
 @app.command("FT")
 def ft_alias(

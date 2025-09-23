@@ -225,6 +225,7 @@ MHI3D reconstruct --nsamples all --sthr 0.95 --ethr 0.95
 - `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
 - `--sthr`: Start threshold [default: 0.98]
 - `--ethr`: End threshold [default: 0.98]
+- `--xZF`: X dimension zero filling factor
 - `--yN`: Y dimension size
 - `--zN`: Z dimension size
 - `--autoN`: Auto-determine N
