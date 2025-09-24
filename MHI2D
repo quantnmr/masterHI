@@ -76,7 +76,7 @@ class Bruker2D(object):
                     if '##$BF1= ' in line:
                         self.xBF1 = line.split()[1]
                     if '##$NUC1= ' in line:
-                        self.xLAB = line.split()[1].replace('<', '').replace('>', '')
+                        self.xLAB = line.split()[1].replace('<', '').replace('>', '')+'_x'
                 self.xT = str(int(self.td) // 2)
                 self.xMODE = 'DQD'
                 ratio = float(self.xBF1) / float(self.xOBS)
@@ -95,7 +95,7 @@ class Bruker2D(object):
                         self.yACQ = line.split()[1]
                         self.yMODE = self.acqDict[int(self.yACQ)]
                     if '##$NUC1= ' in line:
-                        self.yLAB = line.split()[1].replace('<', '').replace('>', '')
+                        self.yLAB = line.split()[1].replace('<', '').replace('>', '')+'_y'
                 
                 ratio = float(self.xBF1) / float(self.yOBS)
                 
@@ -142,6 +142,23 @@ class Options(object):
         self.xZF = False
         self.yZF = False
 
+def find_bruker_data_dir(dir_path):
+    """Find directory containing valid Bruker data, checking current and parent directories."""
+    # Check current directory first
+    if dir_path == '.' or dir_path is None:
+        test_dirs = ['.', '..', '../..', '../../..']
+    else:
+        test_dirs = [dir_path]
+    
+    for test_dir in test_dirs:
+        if os.path.exists(test_dir) and os.path.isdir(test_dir):
+            # Test if this directory contains valid Bruker data
+            test_data = Bruker2D(test_dir)
+            if test_data.valid:
+                return test_dir
+    
+    return None
+
 def load_saved_args():
     if os.path.isfile('.masterHI.config'):
         with open('.masterHI.config', 'rb') as file:
@@ -165,23 +182,19 @@ def convert(
     if not savedargs.dir:
         savedargs.dir = '.'
 
-    # Check if directory exists
-    if not os.path.exists(savedargs.dir):
-        typer.echo(f"❌ Error: Directory '{savedargs.dir}' does not exist!", err=True)
+    # Find directory with valid Bruker data
+    bruker_dir = find_bruker_data_dir(savedargs.dir)
+    if not bruker_dir:
+        typer.echo(f"❌ Error: No valid Bruker data found in '{savedargs.dir}' or '../'", err=True)
+        typer.echo("   Required files: acqus, acqu2s, ser, pulseprogram (or pulseprogram.precomp), nuslist", err=True)
         raise typer.Exit(1)
     
-    if not os.path.isdir(savedargs.dir):
-        typer.echo(f"❌ Error: '{savedargs.dir}' is not a directory!", err=True)
-        raise typer.Exit(1)
+    # Update savedargs.dir to the found directory
+    if bruker_dir != savedargs.dir:
+        typer.echo(f"🔍 Found Bruker data in '{bruker_dir}' (was looking in '{savedargs.dir}')")
+        savedargs.dir = bruker_dir
 
     data = Bruker2D(savedargs.dir)
-    
-    # Check if directory contains valid Bruker data
-    if not data.valid:
-        typer.echo(f"⚠️  Warning: Directory '{savedargs.dir}' does not contain valid Bruker data.", err=True)
-        typer.echo("   Required files: acqus, acqu2s, ser, pulseprogram (or pulseprogram.precomp), nuslist", err=True)
-        typer.echo("   Please check that all required Bruker acquisition files are present.", err=True)
-        raise typer.Exit(1)
     
     if nsamples:
         if nsamples.lower() == 'all':

@@ -127,6 +127,15 @@ MHI2D convert --dir /path/to/data --nsamples 100
 MHI2D convert --dir /path/to/data --nsamples all
 ```
 
+**Automatic Directory Detection:**
+When no `--dir` is specified, MHI2D automatically searches for Bruker data in:
+1. Current directory (`.`)
+2. Parent directory (`../`)
+3. Grandparent directory (`../../`)
+4. Great-grandparent directory (`../../../`)
+
+This is particularly useful when processing data from a subdirectory while the Bruker data is in a parent directory.
+
 **Options:**
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
@@ -202,6 +211,15 @@ Converts Bruker 3D data to nmrPipe format.
 MHI3D convert --dir /path/to/data --nsamples 100
 MHI3D convert --dir /path/to/data --nsamples all
 ```
+
+**Automatic Directory Detection:**
+When no `--dir` is specified, MHI3D automatically searches for Bruker data in:
+1. Current directory (`.`)
+2. Parent directory (`../`)
+3. Grandparent directory (`../../`)
+4. Great-grandparent directory (`../../../`)
+
+This is particularly useful when processing data from a subdirectory while the Bruker data is in a parent directory.
 
 **Options:**
 - `--dir, -d`: Data directory path
