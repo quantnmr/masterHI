@@ -117,6 +117,7 @@ MHI3D FT
 - `C` - Alias for `convert`
 - `R` - Alias for `reconstruct`  
 - `W` - Alias for `workflow`
+- `RS` / `reset` - Alias for `reset` (clear saved configuration)
 
 #### Convert
 Converts Bruker data to nmrPipe format.
@@ -177,6 +178,14 @@ MHI2D clean
 MHI2D clean --force  # Skip confirmation prompt
 ```
 
+#### Reset
+Clears all saved configuration parameters and resets to defaults.
+
+```bash
+MHI2D reset
+MHI2D RS  # Alias
+```
+
 ### MHI3D Commands
 
 **Command Aliases:**
@@ -184,6 +193,7 @@ MHI2D clean --force  # Skip confirmation prompt
 - `PC` - Alias for `phasecheck`  
 - `R` - Alias for `reconstruct`
 - `FT` - Alias for `ft`
+- `RS` / `reset` - Alias for `reset` (clear saved configuration)
 
 #### Convert
 Converts Bruker 3D data to nmrPipe format.
@@ -270,6 +280,14 @@ Removes processing files, keeping only projections and spectrum files.
 ```bash
 MHI3D clean
 MHI3D clean --force  # Skip confirmation prompt
+```
+
+#### Reset
+Clears all saved configuration parameters and resets to defaults.
+
+```bash
+MHI3D reset
+MHI3D RS  # Alias
 ```
 
 ## Required Files

@@ -506,5 +506,20 @@ def workflow_alias(
              ext_x1=ext_x1, ext_xn=ext_xn, y_n=y_n, auto_n=auto_n, itr=itr,
              x_zf=x_zf, y_zf=y_zf, no_draw=no_draw, convert_only=convert_only, reconstruct_only=reconstruct_only)
 
+@app.command("RS")
+@app.command("reset")
+def reset():
+    """Reset all saved configuration to defaults."""
+    config_file = '.masterHI.config'
+    
+    if os.path.exists(config_file):
+        os.remove(config_file)
+        typer.echo("✅ Configuration reset to defaults!")
+    else:
+        typer.echo("ℹ️  No saved configuration found - already at defaults.")
+    
+    typer.echo("🔄 All saved parameters have been cleared.")
+    typer.echo("💡 You can now start fresh with new processing parameters.")
+
 if __name__ == "__main__":
     app()

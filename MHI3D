@@ -512,8 +512,8 @@ def reconstruct(
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
-    x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
+    z_n: Optional[int] = Option(None, "--zN", help="Z dimension size"),
     auto_n: bool = Option(False, "--autoN", help="Auto N option"),
     x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
@@ -563,9 +563,9 @@ def reconstruct(
         savedargs.ethr = 0.98
     if itr:
         savedargs.itr = itr
-    if x_n and y_n:
-        savedargs.xN = x_n
-        savedargs.yN = y_n
+    if y_n and z_n:
+        savedargs.xN = y_n
+        savedargs.yN = z_n
     if auto_n:
         savedargs.autoN = auto_n
         savedargs.xN = 0
@@ -745,14 +745,14 @@ def reconstruct_alias(
     sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
     ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
     itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
-    x_n: Optional[int] = Option(None, "--xN", help="X dimension size"),
     y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
+    z_n: Optional[int] = Option(None, "--zN", help="Z dimension size"),
     auto_n: bool = Option(False, "--autoN", help="Auto N option"),
     x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
 ):
     """Alias for reconstruct command."""
     reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr, itr=itr, 
-               x_n=x_n, y_n=y_n, auto_n=auto_n, x_zf=x_zf)
+               y_n=y_n, z_n=z_n, auto_n=auto_n, x_zf=x_zf)
 
 @app.command("FT")
 def ft_alias(
@@ -768,6 +768,21 @@ def ft_alias(
     """Alias for ft command."""
     ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, 
        z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf)
+
+@app.command("RS")
+@app.command("reset")
+def reset():
+    """Reset all saved configuration to defaults."""
+    config_file = '.masterHI.config'
+    
+    if os.path.exists(config_file):
+        os.remove(config_file)
+        typer.echo("✅ Configuration reset to defaults!")
+    else:
+        typer.echo("ℹ️  No saved configuration found - already at defaults.")
+    
+    typer.echo("🔄 All saved parameters have been cleared.")
+    typer.echo("💡 You can now start fresh with new processing parameters.")
 
 if __name__ == "__main__":
     app()
