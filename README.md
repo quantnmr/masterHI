@@ -27,14 +27,26 @@ Both MHI2D and MHI3D automate these processes by generating and executing the ne
 
 ## Installation
 
-1. Install the required dependencies:
+1. Clone the repository:
+```bash
+git clone https://github.com/nomadiq/masterHI.git
+cd masterHI
+```
+
+2. Install the required dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Move the MHI2D and MHI3D files to the same execution directory as nmrPipe and make them executable:
+3. Make the scripts executable and move them to an appropriate location:
 ```bash
 chmod +x MHI2D MHI3D
+
+# For nmrBox users:
+mv MHI2D MHI3D ~/bin/
+
+# For other installations:
+mv MHI2D MHI3D /your/nmrPipe/nmrbin.<your_platform>/
 ```
 
 ## Quick Start
