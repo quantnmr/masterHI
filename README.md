@@ -103,8 +103,9 @@ MHI3D PC
 #required for your direct dimension. You will iteratively work this step putting in values determined. 
 #E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
 
-#N.B. Solvent suppression is automatically disabled for non-1H direct dimensions (13C, 15N, 19F).
-#For 1H direct dimension, solvent suppression is on by default. Turn it off with --noSOL
+#N.B. Solvent suppression is AUTOMATICALLY applied for 1H direct dimension experiments (on by default).
+#     It is AUTOMATICALLY disabled for non-1H direct dimensions (13C, 15N, 19F).
+#     Override with --noSOL to manually disable solvent suppression for any nucleus type.
 
 MHI3D phasecheck --xP0 0.0 --xP1 0.0 --EXT_L
 # Or using alias:
@@ -236,12 +237,11 @@ This is particularly useful when processing data from a subdirectory while the B
 **Options:**
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
-- `--noSOL`: Skip solvent suppression
 - `--EXT_L, --EXT_R`: Extract left/right regions
 - `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
 
 #### Phasecheck
-Checks and sets phase corrections for all three dimensions.
+Checks and sets phase corrections for all three dimensions. Automatically detects nucleus type and enables solvent suppression for 1H experiments or disables it for non-1H nuclei.
 
 ```bash
 MHI3D phasecheck --xP0 0.0 --xP1 0.0
@@ -252,6 +252,9 @@ MHI3D phasecheck --xP0 0.0 --xP1 0.0
 - `--yP0, --yP1`: Y dimension phase corrections  
 - `--zP0, --zP1`: Z dimension phase corrections
 - `--xZF`: X dimension zero filling factor
+- `--noSOL`: Skip solvent suppression (overrides automatic detection based on nucleus type)
+- `--EXT_L, --EXT_R`: Extract left/right regions
+- `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
 
 #### Reconstruct
 Reconstructs the 3D NMR data using hmsIST.
@@ -352,7 +355,7 @@ The Bruker data directory must contain:
 - **Nucleus identification**: Automatically detects H, F, C, N based on acqus files
 - **Data validation**: Checks for required Bruker files
 - **Parameter extraction**: Reads acquisition parameters from Bruker files
-- **Automatic solvent suppression control**: Automatically detects nucleus type during reconstruction and disables solvent suppression when direct dimension is not 1H (e.g., 13C, 15N, 19F)
+- **Automatic solvent suppression control**: Automatically detects nucleus type and enables solvent suppression for 1H direct dimension experiments, while disabling it for non-1H nuclei (e.g., 13C, 15N, 19F)
 
 ### Configuration Management
 - **Persistent settings**: Command-line options are saved between runs
@@ -368,7 +371,7 @@ The Bruker data directory must contain:
 - **Nucleus detection**: Automatically detects H, C, N, F nuclei across all dimensions
 - **Smart Bruker parameter detection**: Automatically reads acquisition modes from Bruker files and chooses optimal processing parameters
 - **Intelligent FT processing**: Automatically selects appropriate Fourier transform flags based on acquisition mode (negative, alternating, or standard)
-- **Automatic solvent suppression control**: Automatically detects nucleus type during reconstruction and disables solvent suppression when direct dimension is not 1H (e.g., 13C, 15N, 19F)
+- **Automatic solvent suppression control**: Automatically detects nucleus type and enables solvent suppression for 1H direct dimension experiments, while disabling it for non-1H nuclei (e.g., 13C, 15N, 19F)
 
 ## Common Processing Scenarios
 

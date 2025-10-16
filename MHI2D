@@ -289,9 +289,12 @@ def reconstruct(
     else:
         # Auto-detect if solvent suppression should be disabled based on direct dimension nucleus
         data = Bruker2D(savedargs.dir)
-        if data.valid and data.xLAB and data.xLAB.upper() not in ['1H', 'H']:
-            savedargs.noSOL = True
-            typer.echo(f"🔍 Direct dimension is {data.xLAB} - automatically disabling solvent suppression")
+        if data.valid and data.xLAB:
+            # Remove the '_x' suffix for comparison
+            nucleus = data.xLAB.replace('_x', '').upper()
+            if nucleus not in ['1H', 'H']:
+                savedargs.noSOL = True
+                typer.echo(f"🔍 Direct dimension is {data.xLAB} - automatically disabling solvent suppression")
     if itr:
         savedargs.itr = itr
     if y_n:
