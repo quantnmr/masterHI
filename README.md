@@ -29,7 +29,7 @@ Both MHI2D and MHI3D automate these processes by generating and executing the ne
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/nomadiq/masterHI.git
+git clone https://github.com/quantnmr/masterHI.git
 cd masterHI
 ```
 
