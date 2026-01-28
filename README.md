@@ -10,17 +10,18 @@ MHI2D and MHI3D are modernized, semi-automatic script generators for processing 
 The basic workflow for non-uniformly sampled data reconstruction involves:
 
 ### 2D Data (MHI2D)
+
 1. **Conversion** from Bruker format to nmrPipe format
 2. **Reconstruction** of the indirect dimension using hmsIST while **FT Processing and Phasing** the direct and indirect dimensions
 3. **Review** with nmrDraw so phases, processing modes, extyractions can be adjusted
 
-
 ### 3D Data (MHI3D)
+
 1. **Conversion** from Bruker format to nmrPipe format
 2. **Phase checking** and correction for the direct dimension (manual step - critical for quality)
 3. **Reconstruction** of the indirect dimensions using hmsIST
 4. **Fourier transforms** for indirect dimensions with automatic phase detection or manual setting
-5. **Automatic generation** of 2D projections and 3D spectrum 
+5. **Automatic generation** of 2D projections and 3D spectrum
 6. **Automatic display** of all projections in nmrDraw for phase checking
 
 Both MHI2D and MHI3D automate these processes by generating and executing the necessary scripts, while providing a modern command-line interface.
@@ -28,17 +29,20 @@ Both MHI2D and MHI3D automate these processes by generating and executing the ne
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/quantnmr/masterHI.git
 cd masterHI
 ```
 
 2. Install the required dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. Make the scripts executable and move them to an appropriate location:
+
 ```bash
 chmod +x MHI2D MHI3D
 
@@ -54,6 +58,7 @@ mv MHI2D MHI3D /your/nmrPipe/nmrbin.<your_platform>/
 ### 2D Data Processing (MHI2D)
 
 #### Basic Workflow (Recommended)
+
 The simplest way to process your 2D data is using the workflow command:
 
 ```bash
@@ -69,6 +74,7 @@ MHI2D W --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ```
 
 #### Step-by-Step Processing
+
 For more control, you can run each step individually:
 
 ```bash
@@ -86,6 +92,7 @@ MHI2D R --dir /path/to/data --nsamples 100 --sthr 0.95 --ethr 0.95
 ### 3D Data Processing (MHI3D)
 
 #### Recommended Processing Approach
+
 For 3D data, it's recommended to process step-by-step to ensure proper phase checking:
 
 ```bash
@@ -95,12 +102,12 @@ MHI3D convert --dir /path/to/data --nsamples 100
 MHI3D C --dir /path/to/data --nsamples 100
 
 # Step 2: Check and set phase corrections
-MHI3D phasecheck 
+MHI3D phasecheck
 # Or using alias:
-MHI3D PC 
+MHI3D PC
 
-#This step launches an nmrDraw window, which will allow you to discover the phases and extraction 
-#required for your direct dimension. You will iteratively work this step putting in values determined. 
+#This step launches an nmrDraw window, which will allow you to discover the phases and extraction
+#required for your direct dimension. You will iteratively work this step putting in values determined.
 #E.g. --xP0 0.0 --xP1 0.0 --EXT_L => zero phase correction and extracting left side of spectrum.
 
 #N.B. Solvent suppression is AUTOMATICALLY applied for 1H direct dimension experiments (on by default).
@@ -117,9 +124,9 @@ MHI3D reconstruct --sthr 0.95 --ethr 0.95
 MHI3D R --sthr 0.95 --ethr 0.95
 
 # Step 4: Perform Fourier transforms and generate projections
-MHI3D ft 
+MHI3D ft
 # Or using alias:
-MHI3D FT 
+MHI3D FT
 ```
 
 ## Commands
@@ -127,12 +134,14 @@ MHI3D FT
 ### MHI2D Commands
 
 **Command Aliases:**
+
 - `C` - Alias for `convert`
-- `R` - Alias for `reconstruct`  
+- `R` - Alias for `reconstruct`
 - `W` - Alias for `workflow`
 - `RS` / `reset` - Alias for `reset` (clear saved configuration)
 
 #### Convert
+
 Converts Bruker data to nmrPipe format.
 
 ```bash
@@ -142,6 +151,7 @@ MHI2D convert --dir /path/to/data --nsamples all
 
 **Automatic Directory Detection:**
 When no `--dir` is specified, MHI2D automatically searches for Bruker data in:
+
 1. Current directory (`.`)
 2. Parent directory (`../`)
 3. Grandparent directory (`../../`)
@@ -150,10 +160,12 @@ When no `--dir` is specified, MHI2D automatically searches for Bruker data in:
 This is particularly useful when processing data from a subdirectory while the Bruker data is in a parent directory.
 
 **Options:**
+
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
 
 #### Reconstruct
+
 Reconstructs the NMR data using hmsIST.
 
 ```bash
@@ -162,6 +174,7 @@ MHI2D reconstruct --dir /path/to/data --nsamples all --sthr 0.95 --ethr 0.95
 ```
 
 **Options:**
+
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
 - `--sthr`: Start threshold [default: 0.98]
@@ -179,6 +192,7 @@ MHI2D reconstruct --dir /path/to/data --nsamples all --sthr 0.95 --ethr 0.95
 - `--noDraw`: Skip automatic spectrum display
 
 #### Workflow
+
 Runs both convert and reconstruct in sequence.
 
 ```bash
@@ -193,6 +207,7 @@ MHI2D workflow --dir /path/to/data --reconstruct-only
 ```
 
 #### Clean
+
 Removes processing files, keeping only projections and spectrum files.
 
 ```bash
@@ -201,6 +216,7 @@ MHI2D clean --force  # Skip confirmation prompt
 ```
 
 #### Reset
+
 Clears all saved configuration parameters and resets to defaults.
 
 ```bash
@@ -211,13 +227,15 @@ MHI2D RS  # Alias
 ### MHI3D Commands
 
 **Command Aliases:**
+
 - `C` - Alias for `convert`
-- `PC` - Alias for `phasecheck`  
+- `PC` - Alias for `phasecheck`
 - `R` - Alias for `reconstruct`
 - `FT` - Alias for `ft`
 - `RS` / `reset` - Alias for `reset` (clear saved configuration)
 
 #### Convert
+
 Converts Bruker 3D data to nmrPipe format.
 
 ```bash
@@ -227,6 +245,7 @@ MHI3D convert --dir /path/to/data --nsamples all
 
 **Automatic Directory Detection:**
 When no `--dir` is specified, MHI3D automatically searches for Bruker data in:
+
 1. Current directory (`.`)
 2. Parent directory (`../`)
 3. Grandparent directory (`../../`)
@@ -235,12 +254,14 @@ When no `--dir` is specified, MHI3D automatically searches for Bruker data in:
 This is particularly useful when processing data from a subdirectory while the Bruker data is in a parent directory.
 
 **Options:**
+
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples to convert (or 'all' for all samples)
 - `--EXT_L, --EXT_R`: Extract left/right regions
 - `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
 
 #### Phasecheck
+
 Checks and sets phase corrections for all three dimensions. Automatically detects nucleus type and enables solvent suppression for 1H experiments or disables it for non-1H nuclei.
 
 ```bash
@@ -248,8 +269,9 @@ MHI3D phasecheck --xP0 0.0 --xP1 0.0
 ```
 
 **Options:**
+
 - `--xP0, --xP1`: X dimension phase corrections
-- `--yP0, --yP1`: Y dimension phase corrections  
+- `--yP0, --yP1`: Y dimension phase corrections
 - `--zP0, --zP1`: Z dimension phase corrections
 - `--xZF`: X dimension zero filling factor
 - `--noSOL`: Skip solvent suppression (overrides automatic detection based on nucleus type)
@@ -257,6 +279,7 @@ MHI3D phasecheck --xP0 0.0 --xP1 0.0
 - `--EXT_x1, --EXT_xn`: Extract specific ppm ranges
 
 #### Reconstruct
+
 Reconstructs the 3D NMR data using hmsIST.
 
 ```bash
@@ -265,16 +288,21 @@ MHI3D reconstruct --nsamples all --sthr 0.95 --ethr 0.95
 ```
 
 **Options:**
+
 - `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
 - `--sthr`: Start threshold [default: 0.98]
 - `--ethr`: End threshold [default: 0.98]
 - `--xZF`: X dimension zero filling factor
-- `--yN`: Y dimension size
-- `--zN`: Z dimension size
-- `--autoN`: Auto-determine N
+- `--yN`: Y dimension size (reconstruction extension in Y)
+- `--zN`: Z dimension size (reconstruction extension in Z)
+- `--autoN`: Auto-determine N for both indirect dimensions [default when neither --yN nor --zN is used]
 - `--itr`: Iteration option
 
+**Reconstruction extension (`--yN` / `--zN`):**  
+Use `--yN` and/or `--zN` to explicitly set the reconstruction size in the Y or Z indirect dimension (e.g. to extend beyond the default). You can use either flag alone or both together. When only one is given, the other is derived from `nuslist.used` as max(_t_y_ or _t_z_) + 1 over the same rows used for reconstruction. hmsIST requires both `-xN` and `-yN` whenever `-autoN 1` is not used. If you use neither `--yN` nor `--zN`, `-autoN 1` is passed. Use `--autoN` to force automatic sizing and clear any saved `--yN`/`--zN` values.
+
 #### FT (Fourier Transform)
+
 Performs Fourier transforms and generates 2D projections.
 
 ```bash
@@ -282,6 +310,7 @@ MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 ```
 
 **Options:**
+
 - `--yP0, --yP1`: Y dimension phase corrections
 - `--zP0, --zP1`: Z dimension phase corrections
 - `--yZF`: Y dimension zero filling factor
@@ -297,7 +326,7 @@ MHI3D automatically detects optimal processing parameters from your Bruker acqui
 - **Acquisition Mode Detection**: Reads `##$FnMODE=` from `acqu2s` and `acqu3s` files to determine acquisition modes
 - **Smart FT Processing**: Automatically chooses appropriate Fourier transform parameters:
   - `yACQ == '6'` or `zACQ == '6'` → Uses `-neg` flag (negative acquisition mode)
-  - `yACQ == '5'` or `zACQ == '5'` → Uses `-alt` flag (alternating acquisition mode)  
+  - `yACQ == '5'` or `zACQ == '5'` → Uses `-alt` flag (alternating acquisition mode)
   - `--triplerez` flag → Uses `-alt` flag for standard Bruker triple resonance experiments where appropriate
   - Default → Standard FT processing
 - **Default Phase Corrections**: If no phase corrections are specified, uses zero phase correction (`-p0 0.0 -p1 0.0`)
@@ -306,8 +335,8 @@ MHI3D automatically detects optimal processing parameters from your Bruker acqui
 **When to use `--triplerez`:**
 Use this flag for standard Bruker triple resonance experiments (e.g., HNCO, HNCA, HNCACB) where the acquisition parameters are well-established and the automatic detection should use triple resonance defaults.
 
-
 #### Clean
+
 Removes processing files, keeping only projections and spectrum files.
 
 ```bash
@@ -316,6 +345,7 @@ MHI3D clean --force  # Skip confirmation prompt
 ```
 
 #### Reset
+
 Clears all saved configuration parameters and resets to defaults.
 
 ```bash
@@ -326,7 +356,9 @@ MHI3D RS  # Alias
 ## Required Files
 
 ### 2D Data (MHI2D)
+
 The Bruker data directory must contain:
+
 - `acqus` - Acquisition parameters for dimension 1
 - `acqu2s` - Acquisition parameters for dimension 2
 - `ser` - Raw data file
@@ -334,7 +366,9 @@ The Bruker data directory must contain:
 - `nuslist` - Non-uniform sampling list
 
 ### 3D Data (MHI3D)
+
 The Bruker data directory must contain:
+
 - `acqus` - Acquisition parameters for dimension 1
 - `acqu2s` - Acquisition parameters for dimension 2
 - `acqu3s` - Acquisition parameters for dimension 3
@@ -345,6 +379,7 @@ The Bruker data directory must contain:
 ## Features
 
 ### Modern CLI Experience
+
 - **Subcommands**: Organized functionality into logical commands
 - **Type safety**: Better type hints and validation
 - **Help system**: Built-in help for all commands and options
@@ -352,17 +387,20 @@ The Bruker data directory must contain:
 - **Error handling**: Comprehensive validation with helpful error messages
 
 ### Automatic Detection
+
 - **Nucleus identification**: Automatically detects H, F, C, N based on acqus files
 - **Data validation**: Checks for required Bruker files
 - **Parameter extraction**: Reads acquisition parameters from Bruker files
 - **Automatic solvent suppression control**: Automatically detects nucleus type and enables solvent suppression for 1H direct dimension experiments, while disabling it for non-1H nuclei (e.g., 13C, 15N, 19F)
 
 ### Configuration Management
+
 - **Persistent settings**: Command-line options are saved between runs
 - **Flexible overrides**: Change any parameter at any time
 - **Directory validation**: Ensures data directory exists and contains valid Bruker data
 
 ### MHI3D-Specific Features
+
 - **Automatic 2D projection generation**: Creates all possible 2D projections from 3D data
 - **Intelligent projection naming**: Automatically names projections based on nucleus types (e.g., `1H.13C.dat`, `13C.15N.dat`)
 - **Automatic nmrDraw launching**: Opens all projections in nmrDraw with proper window positioning
@@ -376,6 +414,7 @@ The Bruker data directory must contain:
 ## Common Processing Scenarios
 
 ### 15N HSQC Spectra
+
 For 15N HSQC experiments, the 1H amide protons are typically located in the left half of the spectrum (downfield region). Use the `--EXT_L` option to extract only the relevant region:
 
 ```bash
@@ -386,6 +425,7 @@ MHI2D workflow --dir /path/to/15N_HSQC_data --EXT_L
 This extracts only the left side of the spectrum, focusing on the amide region and improving processing efficiency.
 
 ### 13C HSQC/HMQC Spectra
+
 For 13C HSQC/HMQC experiments, you might want to extract specific chemical shift ranges:
 
 ```bash
@@ -394,6 +434,7 @@ MHI2D workflow --dir /path/to/13C_HSQC_data --EXT_x1 0.0 --EXT_xn 8.0
 ```
 
 ### 2D Homonuclear NOESY Spectra
+
 For 2D homonuclear NOESY experiments, you typically want the full spectrum:
 
 ```bash
@@ -405,6 +446,7 @@ MHI2D workflow --dir /path/to/data --xP0 0.0 --xP1 0.0 --yP0 0.0 --yP1 0.0
 ```
 
 ### Partial Data Processing
+
 ```bash
 # Process only first 250 samples (useful for incomplete acquisitions)
 MHI2D workflow --dir /path/to/data --nsamples 250
@@ -415,12 +457,14 @@ MHI2D reconstruct --dir /path/to/data --nsamples all
 ```
 
 ### Custom Processing Parameters
+
 ```bash
 # Custom thresholds and no solvent suppression
 MHI2D workflow --dir /path/to/data --sthr 0.95 --ethr 0.95 --noSOL
 ```
 
 ### Zero Filling Control
+
 Control zero filling for each dimension independently:
 
 ```bash
@@ -430,7 +474,7 @@ MHI2D reconstruct --dir /path/to/data --xZF 2 --yZF 4
 # Only set direct dimension zero filling
 MHI2D reconstruct --dir /path/to/data --xZF 2
 
-# Only set indirect dimension zero filling  
+# Only set indirect dimension zero filling
 MHI2D reconstruct --dir /path/to/data --yZF 4
 
 # Default behavior (auto (1) zero filling for both dimensions)
@@ -438,12 +482,14 @@ MHI2D reconstruct --dir /path/to/data
 ```
 
 **Zero Filling Options:**
+
 - `--xZF`: Controls zero filling for the direct (first) dimension
 - `--yZF`: Controls zero filling for the indirect (second) dimension
 - **Default**: Uses `-auto` for automatic zero filling (1 zero fill) when not specified
 - **Custom**: Use integer values (e.g., `--xZF 2`, `--yZF 4`) for specific zero filling factors
 
 ### MHI3D Zero Filling Control
+
 Control zero filling for each dimension independently in 3D processing:
 
 ```bash
@@ -462,6 +508,7 @@ MHI3D ft
 ```
 
 **3D Zero Filling Options:**
+
 - `--xZF`: Controls zero filling for the direct (first) dimension (used in `phasecheck` and `reconstruct`)
   - **Note**: Rarely needed for `phasecheck`; more relevant for `reconstruct` but typically not necessary for most applications
 - `--yZF`: Controls zero filling for the first indirect (second) dimension (used in `ft`)
@@ -469,7 +516,40 @@ MHI3D ft
 - **Default**: Uses `-auto` for automatic zero filling (1 zero fill) when not specified
 - **Custom**: Use integer values (e.g., `--xZF 2`, `--yZF 4`, `--zZF 2`) for specific zero filling factors
 
+### MHI3D Reconstruction Extension (--yN / --zN)
+
+Use `--yN` and/or `--zN` during **reconstruct** to set the hmsIST reconstruction size in the Y or Z indirect dimension (e.g. to extend the spectrum in that dimension). You can use either flag alone or both together. When only one is given, the other is derived from the nuslist (same rows as `nuslist.used`) as **max(_t_y_ or _t_z_) + 1**; hmsIST requires both `-xN` and `-yN` whenever `-autoN 1` is not used.
+
+```bash
+# Extend reconstruction in Z only (Y derived from nuslist max+1)
+MHI3D R --zN 128
+
+# Extend in Y only (Z derived from nuslist max+1)
+MHI3D R --yN 64
+
+# Extend in both Y and Z
+MHI3D R --yN 64 --zN 128
+
+# Use automatic sizing for both (default); --autoN clears any saved extension
+MHI3D R --autoN
+```
+
+These values are passed to hmsIST as `-xN` (Y) and `-yN` (Z) and are written into `hmsist.com`. Without `--yN`/`--zN`, `-autoN 1` is used.
+
+### MHI3D Scratch Disk (reconstruction / FT)
+
+When running **reconstruct** (or the reconstruct part of a workflow), MHI3D can use a local scratch disk to speed up the slow `pipe2xyz` / `yzx` writes and the reconstruction steps, avoiding network-disk I/O for intermediates.
+
+- **When used**: Only if `/scratch/$(whoami)` exists and your username appears in the current working path (e.g. `/home/you/...`). Not used for convert or phasecheck.
+- **Layout**: Scratch data goes under `/scratch/$(whoami)/kg_proc/` plus the path **after** your username (e.g. `/home/srobson/IU_NMR_DATA/.../PROC` → `/scratch/srobson/kg_proc/IU_NMR_DATA/.../PROC`).
+- **Symlinks**: `yzx`, `yzx_ist`, and `rec` in the processing directory become symlinks to that scratch tree. Scripts (`prepare4recon.com`, `recon.py`, `hmsist.com`, `prepare4ft.com`, `ft.com`) are unchanged and still use `./yzx`, `./yzx_ist`, `./rec`.
+- **Outputs on network disk**: `3Dspectrum.dat` and all 2D projections are always written in the processing directory (network disk), not on scratch, since scratch can be purged.
+- **Clean**: `MHI3D clean` removes the scratch tree for that run and the symlinks, then deletes the usual processing intermediates.
+
+If scratch is not used, behaviour is unchanged (all intermediates and outputs stay in the processing directory).
+
 ### Step-by-Step with Validation
+
 ```bash
 # Convert first
 MHI2D convert --dir /path/to/data --nsamples 100
@@ -492,6 +572,7 @@ MHI2D reconstruct --dir /path/to/data --noDraw
 ```
 
 **When to use `--noDraw`:**
+
 - Batch processing multiple datasets
 - Running in headless environments
 - When you prefer to manually open spectra
@@ -500,7 +581,9 @@ MHI2D reconstruct --dir /path/to/data --noDraw
 ## Output Files
 
 ### MHI2D Output Files
+
 After successful 2D processing, you'll find:
+
 - `test.fid` - Converted nmrPipe data
 - `2Dspectrum.dat` - Final reconstructed 2D spectrum
 - `convert.com` - Conversion script
@@ -508,7 +591,9 @@ After successful 2D processing, you'll find:
 - `nuslist.used` - NUS list used for reconstruction
 
 ### MHI3D Output Files
+
 After successful 3D processing, you'll find:
+
 - `test.fid` - Converted nmrPipe data
 - `3Dspectrum.dat` - Final reconstructed 3D spectrum
 - `1H.13C.dat` - 2D projection (1H vs 13C)
@@ -528,22 +613,26 @@ After successful 3D processing, you'll find:
 ### Common Issues
 
 **Directory not found:**
+
 ```
 ❌ Error: Directory '/path/to/data' does not exist!
 ```
 
 **Invalid Bruker data:**
+
 ```
 ⚠️  Warning: Directory '/path/to/data' does not contain valid Bruker data.
    Required files: acqus, acqu2s, ser, pulseprogram (or pulseprogram.precomp), nuslist
 ```
 
 **Conversion failed:**
+
 ```
 ❌ Conversion failed!
 ```
 
 ### Getting Help
+
 ```bash
 # MHI2D help
 MHI2D --help
@@ -562,27 +651,34 @@ MHI3D ft --help
 ## Technical Details
 
 ### MHI2D Scripts
+
 MHI2D generates and executes the following scripts:
+
 - **convert.com**: Converts Bruker data to nmrPipe format using `bruk2pipe`
 - **proc.com**: Processes data with nmrPipe functions and hmsIST reconstruction
 
 ### MHI3D Scripts
+
 MHI3D generates and executes the following scripts:
+
 - **convert.com**: Converts Bruker data to nmrPipe format using `bruk2pipe`
 - **phase.com**: Phase correction script for the direct dimension
 - **prepare4recon.com**: Pre-reconstruction processing script - transforms, extracts and phases all acquired FIDs
 - **recon.com**: hmsIST reconstruction script that feeds CPUs with data to reconstruct. It launches:
-    - **hmist.com**: The wrapper around the hmsIST function
+  - **hmist.com**: The wrapper around the hmsIST function
 - **ft.com**: Fourier transform script for all indirect dimensions
 
 ### Automatic Detection
+
 Both scripts automatically detect:
+
 - Data dimensions and acquisition modes
 - Nucleus types (H, F, C, N) from acqus files
 - Required processing parameters from Bruker files
 - 3D projection naming based on nucleus combinations (MHI3D only)
 
 **MHI3D Advanced Detection:**
+
 - **Acquisition Mode Detection**: Reads `##$FnMODE=` from `acqu2s` and `acqu3s` files
 - **Smart FT Parameter Selection**: Automatically chooses appropriate Fourier transform flags:
   - Negative acquisition mode (`FnMODE=6`) → `-neg` flag

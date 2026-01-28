@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+import getpass
 import os.path
 import pickle
 import math
@@ -224,12 +225,15 @@ class Bruker3D(object):
             for item in script:
                 outfile.write("%s\n" % item)
 
-    def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None):
+    def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None, use_scratch=False):
         ext_l = ext[0]
         ext_r = ext[1]
         ext_x1 = ext[2]
         ext_xn = ext[3]
-        script = ['#!/bin/csh', '# hmsIST FT along direct dimension and prepare for reconstruction', 'rm -rf yzx', 'xyz2pipe -in fid/data%03d.fid -x \\']
+        script = ['#!/bin/csh', '# hmsIST FT along direct dimension and prepare for reconstruction']
+        if not use_scratch:
+            script.append('rm -rf yzx')
+        script.append('xyz2pipe -in fid/data%03d.fid -x \\')
 
         if sol == False:
             script.append('| nmrPipe -fn SOL \\')
@@ -248,7 +252,10 @@ class Bruker3D(object):
         elif ext_x1:
             script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
 
-        script.extend(('| pipe2xyz -ov -out yzx/data%03d.dat -z', 'rm -rf yzx_ist', 'mkdir yzx_ist'))
+        script.append('| pipe2xyz -ov -out yzx/data%03d.dat -z')
+        if not use_scratch:
+            script.append('rm -rf yzx_ist')
+            script.append('mkdir yzx_ist')
 
         with open(filename, 'w') as outfile:
             for item in script:
@@ -274,11 +281,10 @@ class Bruker3D(object):
         elif itr != 0 and xN == 0 and yN == 0:
             script.append(f'hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr {str(itr)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
 
-        elif itr == 0 and xN != 0 and yN != 0:
-            script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr 250 -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
-
-        elif itr != 0 and xN != 0 and yN != 0:
-            script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr {str(itr)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
+        else:
+            # Both -xN and -yN required when not using -autoN (missing one derived from nuslist in reconstruct)
+            itr_val = 250 if itr == 0 else itr
+            script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr {str(itr_val)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
 
         with open(filenames[1], 'w') as outfile:
             for item in script:
@@ -366,6 +372,51 @@ class Options(object):
         self.beenPhased = False
         self.beenReconed = False
         self.beenFT = False
+        self.scratch_base = None
+
+def _nuslist_max_plus_one(nuslist_path, nsamples=None):
+    """
+    Parse nuslist (same rows as nuslist.used): first two columns are t_y, t_z.
+    Ignore comments/extra columns. Return (size_y, size_z) = (max(t_y)+1, max(t_z)+1)
+    over the first nsamples lines (or all if nsamples is None).
+    """
+    with open(nuslist_path) as f:
+        lines = f.readlines()
+    if nsamples is not None:
+        lines = lines[: int(nsamples)]
+    max_y, max_z = -1, -1
+    for line in lines:
+        toks = line.split()
+        if len(toks) < 2:
+            continue
+        try:
+            ty, tz = int(toks[0]), int(toks[1])
+        except ValueError:
+            continue
+        max_y = max(max_y, ty)
+        max_z = max(max_z, tz)
+    if max_y < 0 or max_z < 0:
+        raise ValueError(f"no valid t_y,t_z rows in nuslist {nuslist_path}")
+    return (max_y + 1, max_z + 1)
+
+
+def _scratch_base(cwd=None):
+    """
+    If /scratch/$(whoami) exists and username appears in cwd, return
+    /scratch/$(whoami)/kg_proc/<path_after_username> (Option A). Else return None.
+    """
+    scratch_root = os.path.join('/scratch', getpass.getuser())
+    if not os.path.isdir(scratch_root):
+        return None
+    cwd = os.path.abspath(cwd or os.getcwd())
+    username = getpass.getuser()
+    if username not in cwd:
+        return None
+    suffix = cwd.split(username, 1)[-1].lstrip(os.sep)
+    if not suffix:
+        return None
+    return os.path.join(scratch_root, 'kg_proc', suffix)
+
 
 def find_bruker_data_dir(dir_path):
     """Find directory containing valid Bruker data, checking current and parent directories."""
@@ -592,33 +643,9 @@ def reconstruct(
     
     if itr:
         savedargs.itr = itr
-    if y_n and z_n:
-        savedargs.xN = y_n
-        savedargs.yN = z_n
-    if auto_n:
-        savedargs.autoN = auto_n
-        savedargs.xN = 0
-        savedargs.yN = 0
-    if x_zf:
-        if not hasattr(savedargs, 'xZF'):
-            savedargs.xZF = False
-        savedargs.xZF = x_zf
 
-    data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
-                                         phase1=savedargs.phase1, 
-                                         ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn],  
-                                         sol=savedargs.noSOL,
-                                         x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None)
-    os.system('chmod 770 prepare4recon.com')
-    typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
-    os.system('./prepare4recon.com')
-
-    data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=0, itr=savedargs.itr,
-                    xN=savedargs.xN, yN=savedargs.yN, sthr=savedargs.sthr, ethr=savedargs.ethr)
-    os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
-    typer.echo("🔄 Performing Reconstruction (recon.py / hmsist.com)")
-
-    os.system('cp '+str(data.nuslist)+' nuslist.copy')
+    # Build nuslist.used in cwd (from Bruker nuslist) so we can derive max+1 from it when needed.
+    os.system('cp ' + str(data.nuslist) + ' nuslist.copy')
     with open('nuslist.copy') as f:
         content = f.readlines()
     if not savedargs.nsamples:
@@ -628,7 +655,72 @@ def reconstruct(
             for i in range(int(savedargs.nsamples)):
                 outfile.write("%s" % content[i])
 
-    if not os.path.isdir("yzx_ist"):
+    if auto_n:
+        savedargs.autoN = True
+        savedargs.xN = 0
+        savedargs.yN = 0
+    else:
+        # --yN and --zN work independently; when only one is given, derive the other from nuslist.used (max+1).
+        # hmsIST requires both -xN and -yN when not using -autoN.
+        if y_n is not None and z_n is not None:
+            savedargs.xN = y_n
+            savedargs.yN = z_n
+        elif y_n is not None:
+            try:
+                size_y, size_z = _nuslist_max_plus_one('nuslist.used', None)
+            except ValueError as e:
+                typer.echo(f"❌ Error: {e}", err=True)
+                raise typer.Exit(1)
+            savedargs.xN = y_n
+            savedargs.yN = size_z
+        elif z_n is not None:
+            try:
+                size_y, size_z = _nuslist_max_plus_one('nuslist.used', None)
+            except ValueError as e:
+                typer.echo(f"❌ Error: {e}", err=True)
+                raise typer.Exit(1)
+            savedargs.xN = size_y
+            savedargs.yN = z_n
+    if x_zf:
+        if not hasattr(savedargs, 'xZF'):
+            savedargs.xZF = False
+        savedargs.xZF = x_zf
+
+    scratch_base = _scratch_base()
+    use_scratch = False
+    if scratch_base:
+        os.system('rm -rf "' + scratch_base + '"')
+        os.makedirs(os.path.join(scratch_base, 'yzx'), exist_ok=True)
+        os.makedirs(os.path.join(scratch_base, 'yzx_ist'), exist_ok=True)
+        os.makedirs(os.path.join(scratch_base, 'rec'), exist_ok=True)
+        os.system('rm -rf yzx yzx_ist rec')
+        os.symlink(os.path.join(scratch_base, 'yzx'), 'yzx')
+        os.symlink(os.path.join(scratch_base, 'yzx_ist'), 'yzx_ist')
+        os.symlink(os.path.join(scratch_base, 'rec'), 'rec')
+        use_scratch = True
+        savedargs.scratch_base = scratch_base
+        typer.echo("📁 Using scratch disk: " + scratch_base)
+    else:
+        savedargs.scratch_base = None
+
+    data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
+                                         phase1=savedargs.phase1, 
+                                         ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn],  
+                                         sol=savedargs.noSOL,
+                                         x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None,
+                                         use_scratch=use_scratch)
+    os.system('chmod 770 prepare4recon.com')
+    typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
+    os.system('./prepare4recon.com')
+
+    _xN = savedargs.xN if (savedargs.xN is not False and savedargs.xN is not None) else 0
+    _yN = savedargs.yN if (savedargs.yN is not False and savedargs.yN is not None) else 0
+    data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=0, itr=savedargs.itr,
+                    xN=_xN, yN=_yN, sthr=savedargs.sthr, ethr=savedargs.ethr)
+    os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
+    typer.echo("🔄 Performing Reconstruction (recon.py / hmsist.com)")
+
+    if not use_scratch and not os.path.isdir("yzx_ist"):
         os.system('mkdir yzx_ist')
 
     os.system('./recon.py yzx/')
@@ -738,8 +830,16 @@ def clean(
         if response != 'Yes':
             typer.echo("Operation cancelled.")
             return
-    
-    os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
+
+    savedargs = load_saved_args()
+    scratch_base = getattr(savedargs, 'scratch_base', None)
+    if scratch_base:
+        os.system('rm -rf "' + scratch_base + '"')
+        typer.echo("Removed scratch: " + scratch_base)
+        savedargs.scratch_base = None
+        save_args(savedargs)
+
+    os.system('rm -rf data001.dat yzx yzx_ist fid rec')
     typer.echo("Cleaning completed.")
 
 # Add command aliases
