@@ -1,13 +1,32 @@
 #!/usr/bin/env python3
 from __future__ import print_function
-import os.path
-import pickle
+
 import math
+import os
+import shutil
+import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
+
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir and _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+
 import typer
-from typer import Option, Argument
+from typer import Argument, Option
+
+from masterhi_common import (
+    BRUKER_ENCODING,
+    chmod_executable,
+    find_bruker_data_dir as _find_bruker_data_dir,
+    load_saved_args as _load_saved_args,
+    run_cmd,
+    save_args as _save_args,
+    TEXT_ENCODING,
+    write_script,
+)
 
 app = typer.Typer(
     name="MHI2D",
@@ -22,25 +41,26 @@ class Bruker2D(object):
         self.ser = os.path.join(data, 'ser')
         self.pp = os.path.join(data, 'pulseprogram')
         self.ppc = os.path.join(data, 'pulseprogram.precomp')
-        self.nuslist = os.path.join(data, 'nuslist')
+        self.nuslist = os.path.join(data, "nuslist")
         self.dir = data
-        self.acqDict = {0: 'undefined', 1: 'qf', 2: 'qsec', 3: 'tppi', 4: 'states', 5: 'states-tppi', 6: 'echo-antiecho'}
+        self.acqDict = {0: "undefined", 1: "qf", 2: "qsec", 3: "tppi", 4: "states", 5: "states-tppi", 6: "echo-antiecho"}
 
-        self.valid = bool(os.path.isfile(self.ac1) and 
-                          os.path.isfile(self.ac2) and 
-                          os.path.isfile(self.ser) and 
-                          (os.path.isfile(self.pp) or os.path.isfile(self.ppc)) and 
-                          os.path.isfile(self.nuslist)
-                          )
+        self.valid = bool(
+            os.path.isfile(self.ac1)
+            and os.path.isfile(self.ac2)
+            and os.path.isfile(self.ser)
+            and (os.path.isfile(self.pp) or os.path.isfile(self.ppc))
+            and os.path.isfile(self.nuslist)
+        )
         # sort out if pulseprogram or pulseprogram.precomp exists (or both I guess)
         if os.path.isfile(self.ppc) and not os.path.isfile(self.pp):
             #print('precomp exists, but pulseprogram does not')
             self.pp = self.ppc
         if self.valid:
-            with open(self.pp) as fp:
-                self.t2EA = any('Echo/Antiecho' in line and 't2' in line for line in fp)
+            with open(self.pp, encoding=BRUKER_ENCODING) as fp:
+                self.t2EA = any("Echo/Antiecho" in line and "t2" in line for line in fp)
         if self.valid:
-            with open(self.ac1) as fp:
+            with open(self.ac1, encoding=BRUKER_ENCODING) as fp:
                 self.grpdly = 0
                 for line in fp:
                     if 'DTYPA' in line:
@@ -81,7 +101,7 @@ class Bruker2D(object):
                 self.xMODE = 'DQD'
                 ratio = float(self.xBF1) / float(self.xOBS)
                 
-            with open(self.ac2) as fp:
+            with open(self.ac2, encoding=BRUKER_ENCODING) as fp:
                 for line in fp:
                     if '##$SW_h= ' in line:
                         self.ySW = line.split()[1]
@@ -104,19 +124,19 @@ class Bruker2D(object):
             self.yCAR = float(self.yO1) / float(self.yBF1)
 
     def genConversion(self, filename, ns=None):
+        """Generate convert.com: Bruker 2D -> nmrPipe (test.fid). ns = sample count or None for all."""
         if self.valid == False:
             print('Data Directory does not seem to contain Bruker Data')
             return 1
         if ns is None:
-            self.nsamples = sum(1 for _ in open(f'{self.dir}/nuslist'))
+            with open(f"{self.dir}/nuslist", encoding=TEXT_ENCODING, errors="replace") as f:
+                self.nsamples = sum(1 for _ in f)
         else:
             self.nsamples = ns
         self.yconvN = self.nsamples
         script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}  {self.datatypeconversion}      \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, int(self.yconvN)*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yconvN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
 
-        with open(filename, 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+        write_script(filename, script)
 
 class Options(object):
     def __init__(self):
@@ -142,32 +162,25 @@ class Options(object):
         self.xZF = False
         self.yZF = False
 
-def find_bruker_data_dir(dir_path):
-    """Find directory containing valid Bruker data, checking current and parent directories."""
-    # Check current directory first
-    if dir_path == '.' or dir_path is None:
-        test_dirs = ['.', '..', '../..', '../../..']
-    else:
-        test_dirs = [dir_path]
-    
-    for test_dir in test_dirs:
-        if os.path.exists(test_dir) and os.path.isdir(test_dir):
-            # Test if this directory contains valid Bruker data
-            test_data = Bruker2D(test_dir)
-            if test_data.valid:
-                return test_dir
-    
-    return None
+def _is_valid_bruker2d(path: str) -> bool:
+    return Bruker2D(path).valid
+
+
+def find_bruker_data_dir(dir_path: Optional[str]):
+    """Find directory containing valid Bruker 2D data."""
+    return _find_bruker_data_dir(dir_path, _is_valid_bruker2d)
+
 
 def load_saved_args():
-    if os.path.isfile('.masterHI.config'):
-        with open('.masterHI.config', 'rb') as file:
-            return pickle.load(file)
-    return Options()
+    return _load_saved_args(Options)
+
 
 def save_args(savedargs):
-    with open('.masterHI.config', 'wb') as file:
-        pickle.dump(savedargs, file)
+    try:
+        _save_args(savedargs)
+    except OSError as e:
+        typer.echo(f"❌ Failed to save config: {e}", err=True)
+        raise typer.Exit(1)
 
 @app.command()
 def convert(
@@ -206,18 +219,22 @@ def convert(
                 typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
                 raise typer.Exit(1) from e
     
-    r = data.genConversion('convert.com', ns=int(savedargs.nsamples) if savedargs.nsamples else None)
-
-    if r != 1:
-        os.system('chmod 770 convert.com')
-        typer.echo("🔄 Converting Bruker Data to nmrPipe Data Format (convert.com)")
-        os.system('./convert.com')
-        savedargs.beenConverted = True
-        typer.echo("✅ Conversion completed successfully!")
-    else:
+    r = data.genConversion("convert.com", ns=int(savedargs.nsamples) if savedargs.nsamples else None)
+    if r == 1:
         typer.echo("❌ Conversion failed!")
         raise typer.Exit(1)
-    
+    try:
+        chmod_executable("convert.com")
+        typer.echo("🔄 Converting Bruker Data to nmrPipe Data Format (convert.com)")
+        typer.echo("Started convert")
+        t0 = time.perf_counter()
+        run_cmd("./convert.com", check=True)
+        typer.echo(f"Finished convert ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ convert.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
+    savedargs.beenConverted = True
+    typer.echo("✅ Conversion completed successfully!")
     save_args(savedargs)
 
 @app.command()
@@ -336,16 +353,16 @@ def reconstruct(
         script.append('| nmrPipe  -fn EXT -left -sw           \\')
     elif ext_r:
         script.append('| nmrPipe  -fn EXT -right -sw          \\')
-    elif ext_x1 and ext_xn:
+    elif ext_x1 is not None and ext_xn is not None:
         script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
     
     script.append('| nmrPipe  -fn TP \\')
-   
-    if y_n:    
-        script.append(f'| hmsIST -xN {y_n} -sched nuslist.used            \\')
-    
-    else:  
-        script.append('| hmsIST -autoN 1 -sched nuslist.used            \\')
+    sthr = getattr(savedargs, "sthr", 0.98) or 0.98
+    ethr = getattr(savedargs, "ethr", 0.98) or 0.98
+    if y_n:
+        script.append(f'| hmsIST -xN {y_n} -sched nuslist.used -i_mult {sthr} -e_mult {ethr} \\')
+    else:
+        script.append(f'| hmsIST -autoN 1 -sched nuslist.used -i_mult {sthr} -e_mult {ethr} \\')
         
     script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
     if hasattr(savedargs, 'yZF') and savedargs.yZF:
@@ -369,25 +386,31 @@ def reconstruct(
     if not no_draw:
         script.append('nmrDraw -in 2Dspectrum.dat')
 
-    with open('proc.com', 'w') as outfile:
-        for item in script:
-            outfile.write("%s\n" % item)
-    os.system('chmod 770 proc.com')
-    
-    typer.echo("🔄 Reconstructing NMR Data (proc.com)")
-    
-    os.system(f'cp {str(data.nuslist)} nuslist.copy')
-    with open('nuslist.copy') as f:
-        content = f.readlines()
-    if not savedargs.nsamples:
-        os.system('cp nuslist.copy nuslist.used')
-    else:
-        with open('nuslist.used', 'w') as outfile:
-            for i in range(int(savedargs.nsamples)):
-                outfile.write(f"{content[i]}")
-    os.system('./proc.com')
+    try:
+        write_script("proc.com", script)
+        chmod_executable("proc.com")
+        typer.echo("🔄 Reconstructing NMR Data (proc.com)")
+        shutil.copy(data.nuslist, "nuslist.copy")
+        with open("nuslist.copy", encoding=TEXT_ENCODING, errors="replace") as f:
+            content = f.readlines()
+        if not savedargs.nsamples:
+            shutil.copy("nuslist.copy", "nuslist.used")
+        else:
+            with open("nuslist.used", "w", encoding=TEXT_ENCODING) as outfile:
+                for i in range(int(savedargs.nsamples)):
+                    outfile.write(content[i])
+        typer.echo("Started reconstruct")
+        t0 = time.perf_counter()
+        run_cmd("./proc.com", check=True)
+        typer.echo(f"Finished reconstruct ({time.perf_counter() - t0:.1f} s)")
+    except OSError as e:
+        typer.echo(f"❌ I/O error (nuslist or script): {e}", err=True)
+        raise typer.Exit(1)
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ proc.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
     savedargs.beenReconed = True
-    
+
     typer.echo("✅ Reconstruction completed successfully!")
     
     save_args(savedargs)
@@ -403,7 +426,7 @@ def clean(
             typer.echo("Operation cancelled.")
             return
     
-    os.system('rm -rf data001.dat yzx yzx_ist fid rec/*.ft1')
+    run_cmd("rm -rf data001.dat yzx yzx_ist fid rec", check=False)
     typer.echo("Cleaning completed.")
 
 @app.command()

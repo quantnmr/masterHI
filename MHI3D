@@ -1,14 +1,35 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+
+import glob
 import getpass
-import os.path
-import pickle
 import math
+import os
+import shutil
+import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
+
+# Ensure masterhi_common can be imported when MHI3D is run from elsewhere (e.g. ~/bin)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir and _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+
 import typer
-from typer import Option, Argument
+from typer import Argument, Option
+
+from masterhi_common import (
+    BRUKER_ENCODING,
+    chmod_executable,
+    find_bruker_data_dir as _find_bruker_data_dir,
+    load_saved_args as _load_saved_args,
+    run_cmd,
+    save_args as _save_args,
+    TEXT_ENCODING,
+    write_script,
+)
 
 app = typer.Typer(
     name="MHI3D",
@@ -39,10 +60,10 @@ class Bruker3D(object):
         if os.path.isfile(self.ppc) and not os.path.isfile(self.pp):
             self.pp = self.ppc
         if self.valid:
-            with open(self.pp) as fp:
-                self.t2EA = any('Echo/Antiecho' in line and 't2' in line for line in fp)
+            with open(self.pp, encoding=BRUKER_ENCODING) as fp:
+                self.t2EA = any("Echo/Antiecho" in line and "t2" in line for line in fp)
         if self.valid:
-            with open(self.ac1) as fp:
+            with open(self.ac1, encoding=BRUKER_ENCODING) as fp:
                 for line in fp:
                     if 'DTYPA' in line:
                         self.dtypa = int(line.split()[1])
@@ -79,7 +100,7 @@ class Bruker3D(object):
                         self.xLAB = line.split()[1].replace('<', '').replace('>', '')+'_x'
                 self.xT = str(int(self.td) // 2)
                 self.xMODE = 'DQD'
-            with open(self.ac2) as fp:
+            with open(self.ac2, encoding=BRUKER_ENCODING) as fp:
                 # Initialize ySW and ySW_ppm as None to track if they're found
                 self.ySW = None
                 self.ySW_ppm = None
@@ -104,7 +125,7 @@ class Bruker3D(object):
                 self.yN = 4
                 self.yT = 2
                 self.yMODE = 'Real'
-            with open(self.ac3) as fp:
+            with open(self.ac3, encoding=BRUKER_ENCODING) as fp:
                 # Initialize zSW and zSW_ppm as None to track if they're found
                 self.zSW = None
                 self.zSW_ppm = None
@@ -134,14 +155,15 @@ class Bruker3D(object):
             self.zCAR = float(self.zO1) / float(self.zBF1)
 
     def genDirectPhaseCheck(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None):
+        """Generate phase.com: FT first point of fid -> data001.dat for phase checking."""
         ext_l = ext[0]
         ext_r = ext[1]
         ext_x1 = ext[2]
         ext_xn = ext[3]
         script = ['#!/bin/csh', '# hmsIST FT along direct dimension for first samples point only', 'nmrPipe -in fid/data001.fid       \\']
 
-        if sol == False:
-            script.append('| nmrPipe -fn SOL \\')
+        if not sol:
+            script.append("| nmrPipe -fn SOL \\")
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         if x_zf:
             script.append(f'| nmrPipe  -fn ZF -zf {x_zf} -auto                         \\')
@@ -154,15 +176,14 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
         elif ext_r:
             script.append('| nmrPipe  -fn EXT -right -sw          \\')
-        elif ext_x1:
+        elif ext_x1 is not None:
             script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
 
-        script.append('>data001.dat')
-        with open(filename, 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+        script.append(">data001.dat")
+        write_script(filename, script)
 
     def genFT(self, filename, triplerez=False, yACQ=False, zACQ=False, xyz=False, yP0=False, yP1=False, zP0=False, zP1=False, y_zf=None, z_zf=None):
+        """Generate ft.com: FT indirect dims from rec/*.ft1 -> 3Dspectrum.dat and 2D projections."""
         script = ['#!/bin/csh']
         script.append('# hmsIST FT along indirect dimensions')
         script.append('xyz2pipe -in rec/data%03d.ft1 -x \\')
@@ -172,60 +193,51 @@ class Bruker3D(object):
         else:
             script.append('| nmrPipe  -fn ZF -auto                       \\')
 
-        if triplerez == True or yACQ == '6':
-            script.append('| nmrPipe  -fn FT -neg                             \\')
-        elif yACQ == '5':
-            script.append('| nmrPipe  -fn FT -alt                             \\')
+        if triplerez or yACQ == "6":
+            script.append("| nmrPipe  -fn FT -neg                             \\")
+        elif yACQ == "5":
+            script.append("| nmrPipe  -fn FT -alt                             \\")
         else:
-            script.append('| nmrPipe  -fn FT                             \\')
+            script.append("| nmrPipe  -fn FT                             \\")
         if yP0 and yP1:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)} -p1 {str(yP1)}' + ' -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 {yP0} -p1 {yP1} -di              \\")
         elif yP0:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(yP0)}' + ' -p1 0.0 -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 {yP0} -p1 0.0 -di              \\")
         elif yP1:
-            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(yP1)}' + ' -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 0.0 -p1 {yP1} -di              \\")
         else:
-            script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-        script.append('| nmrPipe  -fn TP \\')
-        script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\')
+            script.append("| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\")
+        script.extend(("| nmrPipe  -fn TP \\", "| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5 \\"))
         if z_zf:
             script.append(f'| nmrPipe  -fn ZF -zf {z_zf} -auto  \\')
         else:
             script.append('| nmrPipe  -fn ZF -auto  \\')
 
-        if triplerez == True:
-            script.append('| nmrPipe  -fn FT -alt -verb                       \\')
-        elif zACQ == '6':
-            script.append('| nmrPipe  -fn FT -neg -verb                            \\')
-        elif zACQ == '5':
-            script.append('| nmrPipe  -fn FT -alt -verb                            \\')
+        if triplerez:
+            script.append("| nmrPipe  -fn FT -alt -verb                       \\")
+        elif zACQ == "6":
+            script.append("| nmrPipe  -fn FT -neg -verb                            \\")
+        elif zACQ == "5":
+            script.append("| nmrPipe  -fn FT -alt -verb                            \\")
         else:
-            script.append('| nmrPipe  -fn FT -verb                       \\')
+            script.append("| nmrPipe  -fn FT -verb                       \\")
         if zP0 and zP1:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(zP0)} -p1 {str(zP1)}' + ' -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 {zP0} -p1 {zP1} -di              \\")
         elif zP0:
-            script.append(f'| nmrPipe  -fn PS -p0 {str(zP0)}' + ' -p1 0.0 -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 {zP0} -p1 0.0 -di              \\")
         elif zP1:
-            script.append(f'| nmrPipe  -fn PS -p0 0.0 -p1 {str(zP1)}' + ' -di              \\')
-
+            script.append(f"| nmrPipe  -fn PS -p0 0.0 -p1 {zP1} -di              \\")
         else:
-            script.append('| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\')
-        script.extend(('| nmrPipe  -fn POLY -auto -ord 1 \\', '| nmrPipe  -fn TP \\', '| nmrPipe  -fn POLY -auto -ord 1 \\', '| nmrPipe  -fn ZTP \\', '| nmrPipe  -fn POLY -auto -ord 1 \\', '> 3Dspectrum.dat'))
+            script.append("| nmrPipe  -fn PS -p0 0.0 -p1 0.0 -di              \\")
+        script.extend(("| nmrPipe  -fn POLY -auto -ord 1 \\", "| nmrPipe  -fn TP \\", "| nmrPipe  -fn POLY -auto -ord 1 \\", "| nmrPipe  -fn ZTP \\", "| nmrPipe  -fn POLY -auto -ord 1 \\", "> 3Dspectrum.dat"))
 
-        if xyz == True:
-            script.extend(('nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3', 'echo "wrote xyz data out to rec/data%04d.ft3"'))
-
-        script.append('proj3D.tcl -noverb -in 3Dspectrum.dat')
-        with open(filename, 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+        if xyz:
+            script.extend(("nmrPipe -in 3Dspectrum.dat | pipe2xyz -out rec/data%04d.ft3", 'echo "wrote xyz data out to rec/data%04d.ft3"'))
+        script.append("proj3D.tcl -noverb -in 3Dspectrum.dat")
+        write_script(filename, script)
 
     def genPrepare(self, filename, phase0=0, phase1=0, ext=False, sol=False, x_zf=None, use_scratch=False):
+        """Generate prepare4recon.com: fid -> yzx (FT direct, phase, extract). use_scratch omits rm/mkdir for yzx/yzx_ist."""
         ext_l = ext[0]
         ext_r = ext[1]
         ext_x1 = ext[2]
@@ -235,8 +247,8 @@ class Bruker3D(object):
             script.append('rm -rf yzx')
         script.append('xyz2pipe -in fid/data%03d.fid -x \\')
 
-        if sol == False:
-            script.append('| nmrPipe -fn SOL \\')
+        if not sol:
+            script.append("| nmrPipe -fn SOL \\")
         script.append('| nmrPipe  -fn SP -off 0.5 -end 0.98 -pow 2 -c 0.5  \\')
         if x_zf:
             script.append(f'| nmrPipe  -fn ZF -zf {x_zf} -auto                         \\')
@@ -249,19 +261,17 @@ class Bruker3D(object):
             script.append('| nmrPipe  -fn EXT -left -sw           \\')
         elif ext_r:
             script.append('| nmrPipe  -fn EXT -right -sw          \\')
-        elif ext_x1:
+        elif ext_x1 is not None:
             script.append(f'| nmrPipe  -fn EXT -x1 {ext_x1}ppm -xn {ext_xn}ppm -sw             \\')
 
-        script.append('| pipe2xyz -ov -out yzx/data%03d.dat -z')
+        script.append("| pipe2xyz -ov -out yzx/data%03d.dat -z")
         if not use_scratch:
-            script.append('rm -rf yzx_ist')
-            script.append('mkdir yzx_ist')
-
-        with open(filename, 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+            script.append("rm -rf yzx_ist")
+            script.append("mkdir yzx_ist")
+        write_script(filename, script)
 
     def genRecon(self, filenames, proc=0, itr=0, xN=0, yN=0, sthr=0.98, ethr=0.98):
+        """Generate recon.py, hmsist.com, prepare4ft.com. xN/yN = Y/Z sizes; sthr/ethr -> -i_mult/-e_mult."""
         script = ['#!/usr/bin/env python3', '', 'from __future__ import print_function', 'from multiprocessing import Pool', '# import curses', 'from subprocess import call', 'import sys', 'from os import listdir', 'from os.path import isfile, join', 'from os import walk', '', 'if len(sys.argv) == 1:', "    sys.argv.append(\'yzx/\')", 'onlyfiles = [ f for f in listdir(sys.argv[1]) if isfile(join(sys.argv[1],f)) ]', 'onlyfiles.sort()', 'num=len(onlyfiles)', '', 'def recon(x):', '    global num', "    path, dirs, files = next(walk(\'./yzx_ist\'))", '    i = len(files)', '    hashsize = int(num/32.0)', '    hashes = int(float(i)/float(hashsize))', "    print(\'[\', end=\'\')", '    for n in range(32):', '        if n < hashes:', "            print(\'#\', end=\'\')", '        else:', "            print(\'-\', end=\'\')", "    print(\']\', end=\'\')", '    perc = 100.0*i/num', "    print(\' %.2f\' % perc + \'% done\', end=\'\\r\')", '    sys.stdout.flush()', '    call(["./hmsist.com", x])', '']
 
         if proc == 0:
@@ -270,10 +280,8 @@ class Bruker3D(object):
             script.append(f'pool = Pool(processes={str(proc)})')
         script.extend(('it = pool.map(recon, onlyfiles)', "print(\'[################################] 100.00% done\')", "print(\'\')"))
 
-        with open(filenames[0], 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
-        script = ['#!/bin/csh', 'set F = $1', '  set in = $F:t', '  set out = $F:t:r.phf', '']
+        write_script(filenames[0], script)
+        script = ["#!/bin/csh", "set F = $1", "  set in = $F:t", "  set out = $F:t:r.phf", ""]
 
         if itr == 0 and xN == 0 and yN == 0:
             script.append(f'hmsIST -dim 2 -incr 1 -autoN 1 -user 1 -itr 250 -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
@@ -286,21 +294,18 @@ class Bruker3D(object):
             itr_val = 250 if itr == 0 else itr
             script.append(f'hmsIST -dim 2 -incr 1 -xN {str(xN)} -yN {str(yN)} -user 1 -itr {str(itr_val)} -i_mult {str(sthr)} -e_mult {str(ethr)}' + ' -verb 0 -ref 0 -vlist nuslist.used < ./yzx/${in} >! ./yzx_ist/${out}')
 
-        with open(filenames[1], 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
-        script = ['#!/bin/csh', 'xyz2pipe -in yzx_ist/data%03d.phf | phf2pipe -user 1 | pipe2xyz -out rec/data%03d.ft1']
-
-        with open(filenames[2], 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+        write_script(filenames[1], script)
+        script = ["#!/bin/csh", "xyz2pipe -in yzx_ist/data%03d.phf | phf2pipe -user 1 | pipe2xyz -out rec/data%03d.ft1"]
+        write_script(filenames[2], script)
 
     def genConversion(self, filename, ns=None):
+        """Generate convert.com: Bruker 3D -> fid/data%03d.fid. ns = sample count or None for all."""
         if self.valid == False:
             print('Data Directory does not seem to contain Bruker Data')
             return 1
         if ns is None:
-            self.nsamples = sum(1 for _ in open(f'{self.dir}/nuslist'))
+            with open(f"{self.dir}/nuslist", encoding=TEXT_ENCODING, errors="replace") as f:
+                self.nsamples = sum(1 for _ in f)
         else:
             self.nsamples = ns
         self.zN = self.nsamples
@@ -328,16 +333,13 @@ class Bruker3D(object):
         # Combine all parts of the script
         script = script_start + [conversion_options] + script_rest
 
-        if self.t2EA == True:
-            script.append('| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr                \\')
+        if self.t2EA:
+            script.append("| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr                \\")
         else:
-            script.append('#| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr               \\')
+            script.append("#| nmrPipe -fn MAC -macro $NMRTXT/ranceY.M -noRd -noWr               \\")
 
-        script.append('| pipe2xyz -x -out ./fid/data%03d.fid -verb -ov -to 0')
-        
-        with open(filename, 'w') as outfile:
-            for item in script:
-                outfile.write("%s\n" % item)
+        script.append("| pipe2xyz -x -out ./fid/data%03d.fid -verb -ov -to 0")
+        write_script(filename, script)
 
 class Options(object):
     def __init__(self):
@@ -380,7 +382,7 @@ def _nuslist_max_plus_one(nuslist_path, nsamples=None):
     Ignore comments/extra columns. Return (size_y, size_z) = (max(t_y)+1, max(t_z)+1)
     over the first nsamples lines (or all if nsamples is None).
     """
-    with open(nuslist_path) as f:
+    with open(nuslist_path, encoding=TEXT_ENCODING, errors="replace") as f:
         lines = f.readlines()
     if nsamples is not None:
         lines = lines[: int(nsamples)]
@@ -400,12 +402,30 @@ def _nuslist_max_plus_one(nuslist_path, nsamples=None):
     return (max_y + 1, max_z + 1)
 
 
+def _is_scratch_path_safe(scratch_base: str) -> bool:
+    """Ensure scratch_base is under /scratch/ and never /, /scratch, or $HOME."""
+    if not scratch_base or not isinstance(scratch_base, str):
+        return False
+    norm = os.path.normpath(scratch_base)
+    if norm in ("/", "/scratch"):
+        return False
+    if not norm.startswith("/scratch/"):
+        return False
+    try:
+        home = os.path.expanduser("~")
+        if home and (norm == home or norm.startswith(home + os.sep)):
+            return False
+    except Exception:
+        pass
+    return True
+
+
 def _scratch_base(cwd=None):
     """
     If /scratch/$(whoami) exists and username appears in cwd, return
     /scratch/$(whoami)/kg_proc/<path_after_username> (Option A). Else return None.
     """
-    scratch_root = os.path.join('/scratch', getpass.getuser())
+    scratch_root = os.path.join("/scratch", getpass.getuser())
     if not os.path.isdir(scratch_root):
         return None
     cwd = os.path.abspath(cwd or os.getcwd())
@@ -415,36 +435,34 @@ def _scratch_base(cwd=None):
     suffix = cwd.split(username, 1)[-1].lstrip(os.sep)
     if not suffix:
         return None
-    return os.path.join(scratch_root, 'kg_proc', suffix)
+    base = os.path.join(scratch_root, "kg_proc", suffix)
+    if not _is_scratch_path_safe(base):
+        return None
+    return base
 
 
-def find_bruker_data_dir(dir_path):
-    """Find directory containing valid Bruker data, checking current and parent directories."""
-    # Check current directory first
-    if dir_path == '.' or dir_path is None:
-        test_dirs = ['.', '..', '../..', '../../..']
-    else:
-        test_dirs = [dir_path]
-    
-    for test_dir in test_dirs:
-        if os.path.exists(test_dir) and os.path.isdir(test_dir):
-            # Test if this directory contains valid Bruker data
-            test_data = Bruker3D(test_dir, ser_file='ser')
-            if test_data.valid:
-                return test_dir
-    
-    return None
+def _is_valid_bruker3d(path: str, ser_file: str = "ser") -> bool:
+    return Bruker3D(path, ser_file=ser_file).valid
+
+
+def find_bruker_data_dir(dir_path: Optional[str], ser_file: str = "ser"):
+    """Find directory containing valid Bruker 3D data."""
+    return _find_bruker_data_dir(
+        dir_path,
+        lambda d: _is_valid_bruker3d(d, ser_file=ser_file),
+    )
+
 
 def load_saved_args():
-    if os.path.isfile('.masterHI.config'):
-        with open('.masterHI.config', 'rb') as file:
-            return pickle.load(file)
-    else:
-        return Options()
+    return _load_saved_args(Options)
+
 
 def save_args(savedargs):
-    with open('.masterHI.config', 'wb') as file:
-        pickle.dump(savedargs, file)
+    try:
+        _save_args(savedargs)
+    except OSError as e:
+        typer.echo(f"❌ Failed to save config: {e}", err=True)
+        raise typer.Exit(1)
 
 @app.command()
 def convert(
@@ -461,7 +479,8 @@ def convert(
         savedargs.dir = '.'
     
     # Find directory with valid Bruker data
-    bruker_dir = find_bruker_data_dir(savedargs.dir)
+    ser_file = getattr(savedargs, "ser", "ser")
+    bruker_dir = find_bruker_data_dir(savedargs.dir, ser_file=ser_file)
     if not bruker_dir:
         typer.echo(f"❌ Error: No valid Bruker data found in '{savedargs.dir}' or '../'", err=True)
         typer.echo("   Required files: acqus, acqu2s, acqu3s, ser, pulseprogram (or pulseprogram.precomp), nuslist", err=True)
@@ -484,18 +503,23 @@ def convert(
                 typer.echo("❌ Error: nsamples must be a number or 'all'", err=True)
                 raise typer.Exit(1)
     
-    r = data.genConversion('convert.com', ns=int(savedargs.nsamples) if savedargs.nsamples else None)
-
-    if r != 1:
-        os.system('chmod 770 convert.com')
-        typer.echo("🔄 Converting Bruker 3D Data to nmrPipe Data Format (convert.com)")
-        os.system('./convert.com')
-        savedargs.beenConverted = True
-        typer.echo("✅ Conversion completed successfully!")
-    else:
+    r = data.genConversion("convert.com", ns=int(savedargs.nsamples) if savedargs.nsamples else None)
+    if r == 1:
         typer.echo("❌ Conversion failed!")
         raise typer.Exit(1)
-    
+
+    try:
+        chmod_executable("convert.com")
+        typer.echo("🔄 Converting Bruker 3D Data to nmrPipe Data Format (convert.com)")
+        typer.echo("Started convert")
+        t0 = time.perf_counter()
+        run_cmd("./convert.com", check=True)
+        typer.echo(f"Finished convert ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ convert.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
+    savedargs.beenConverted = True
+    typer.echo("✅ Conversion completed successfully!")
     save_args(savedargs)
 
 @app.command()
@@ -542,10 +566,7 @@ def phasecheck(
                 savedargs.noSOL = True
                 typer.echo(f"🔍 Direct dimension is {data.xLAB} - automatically disabling solvent suppression")
     
-    if ext_x1 and not ext_xn:
-        typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
-        raise typer.Exit(1)
-    if not ext_x1 and ext_xn:
+    if (ext_x1 is not None) != (ext_xn is not None):
         typer.echo("❌ Error: Must specify both EXT_x1 and EXT_xn", err=True)
         raise typer.Exit(1)
     
@@ -564,12 +585,18 @@ def phasecheck(
                                 sol=savedargs.noSOL,
                                 x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None)
 
-    os.system('chmod 770 phase.com')
-    typer.echo("🔄 Transforming first Samples Point to test phases (phase.com)")
-    os.system('./phase.com')
-    os.system('nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat')
+    try:
+        chmod_executable("phase.com")
+        typer.echo("🔄 Transforming first Samples Point to test phases (phase.com)")
+        typer.echo("Started phasecheck")
+        t0 = time.perf_counter()
+        run_cmd("./phase.com", check=True)
+        typer.echo(f"Finished phasecheck ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ phase.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
+    run_cmd("nmrDraw -Ws 1000 700 -position 50 50 -in data001.dat", check=False)
     savedargs.beenPhased = True
-    
     save_args(savedargs)
 
 @app.command()
@@ -645,15 +672,23 @@ def reconstruct(
         savedargs.itr = itr
 
     # Build nuslist.used in cwd (from Bruker nuslist) so we can derive max+1 from it when needed.
-    os.system('cp ' + str(data.nuslist) + ' nuslist.copy')
-    with open('nuslist.copy') as f:
-        content = f.readlines()
+    shutil.copy(data.nuslist, "nuslist.copy")
+    try:
+        with open("nuslist.copy", encoding=TEXT_ENCODING, errors="replace") as f:
+            content = f.readlines()
+    except OSError as e:
+        typer.echo(f"❌ Failed to read nuslist.copy: {e}", err=True)
+        raise typer.Exit(1)
     if not savedargs.nsamples:
-        os.system('cp nuslist.copy nuslist.used')
+        shutil.copy("nuslist.copy", "nuslist.used")
     else:
-        with open('nuslist.used', 'w') as outfile:
-            for i in range(int(savedargs.nsamples)):
-                outfile.write("%s" % content[i])
+        try:
+            with open("nuslist.used", "w", encoding=TEXT_ENCODING) as outfile:
+                for i in range(int(savedargs.nsamples)):
+                    outfile.write(content[i])
+        except OSError as e:
+            typer.echo(f"❌ Failed to write nuslist.used: {e}", err=True)
+            raise typer.Exit(1)
 
     if auto_n:
         savedargs.autoN = True
@@ -689,43 +724,73 @@ def reconstruct(
     scratch_base = _scratch_base()
     use_scratch = False
     if scratch_base:
-        os.system('rm -rf "' + scratch_base + '"')
-        os.makedirs(os.path.join(scratch_base, 'yzx'), exist_ok=True)
-        os.makedirs(os.path.join(scratch_base, 'yzx_ist'), exist_ok=True)
-        os.makedirs(os.path.join(scratch_base, 'rec'), exist_ok=True)
-        os.system('rm -rf yzx yzx_ist rec')
-        os.symlink(os.path.join(scratch_base, 'yzx'), 'yzx')
-        os.symlink(os.path.join(scratch_base, 'yzx_ist'), 'yzx_ist')
-        os.symlink(os.path.join(scratch_base, 'rec'), 'rec')
+        run_cmd(f'rm -rf "{scratch_base}"', check=False)
+        os.makedirs(os.path.join(scratch_base, "yzx"), exist_ok=True)
+        os.makedirs(os.path.join(scratch_base, "yzx_ist"), exist_ok=True)
+        os.makedirs(os.path.join(scratch_base, "rec"), exist_ok=True)
+        run_cmd("rm -rf yzx yzx_ist rec", check=False)
+        os.symlink(os.path.join(scratch_base, "yzx"), "yzx")
+        os.symlink(os.path.join(scratch_base, "yzx_ist"), "yzx_ist")
+        os.symlink(os.path.join(scratch_base, "rec"), "rec")
         use_scratch = True
         savedargs.scratch_base = scratch_base
-        typer.echo("📁 Using scratch disk: " + scratch_base)
+        typer.echo(f"📁 Using scratch disk: {scratch_base}")
     else:
         savedargs.scratch_base = None
 
-    data.genPrepare('prepare4recon.com', phase0=savedargs.phase0, 
-                                         phase1=savedargs.phase1, 
-                                         ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn],  
-                                         sol=savedargs.noSOL,
-                                         x_zf=savedargs.xZF if hasattr(savedargs, 'xZF') else None,
-                                         use_scratch=use_scratch)
-    os.system('chmod 770 prepare4recon.com')
-    typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
-    os.system('./prepare4recon.com')
+    data.genPrepare(
+        "prepare4recon.com",
+        phase0=savedargs.phase0,
+        phase1=savedargs.phase1,
+        ext=[savedargs.EXT_L, savedargs.EXT_R, savedargs.EXT_x1, savedargs.EXT_xn],
+        sol=savedargs.noSOL,
+        x_zf=savedargs.xZF if hasattr(savedargs, "xZF") else None,
+        use_scratch=use_scratch,
+    )
+    try:
+        chmod_executable("prepare4recon.com")
+        typer.echo("🔄 Preparing Sampled Points for Full Reconstruction (prepare4recon.com)")
+        typer.echo("Started prepare4recon")
+        t0 = time.perf_counter()
+        run_cmd("./prepare4recon.com", check=True)
+        typer.echo(f"Finished prepare4recon ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ prepare4recon.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
 
     _xN = savedargs.xN if (savedargs.xN is not False and savedargs.xN is not None) else 0
     _yN = savedargs.yN if (savedargs.yN is not False and savedargs.yN is not None) else 0
-    data.genRecon(['recon.py', 'hmsist.com', 'prepare4ft.com'], proc=0, itr=savedargs.itr,
-                    xN=_xN, yN=_yN, sthr=savedargs.sthr, ethr=savedargs.ethr)
-    os.system('chmod 770 recon.py hmsist.com prepare4ft.com')
+    data.genRecon(
+        ["recon.py", "hmsist.com", "prepare4ft.com"],
+        proc=0,
+        itr=savedargs.itr,
+        xN=_xN,
+        yN=_yN,
+        sthr=savedargs.sthr,
+        ethr=savedargs.ethr,
+    )
+    chmod_executable("recon.py", "hmsist.com", "prepare4ft.com")
     typer.echo("🔄 Performing Reconstruction (recon.py / hmsist.com)")
-
     if not use_scratch and not os.path.isdir("yzx_ist"):
-        os.system('mkdir yzx_ist')
+        os.makedirs("yzx_ist", exist_ok=True)
 
-    os.system('./recon.py yzx/')
+    try:
+        typer.echo("Started recon")
+        t0 = time.perf_counter()
+        run_cmd("./recon.py yzx/", check=True)
+        typer.echo(f"Finished recon ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ recon.py failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
     typer.echo("🔄 Moving from PHF to standard nmrPipe data order (prepare4ft.com)")
-    os.system('./prepare4ft.com')
+    try:
+        typer.echo("Started prepare4ft")
+        t0 = time.perf_counter()
+        run_cmd("./prepare4ft.com", check=True)
+        typer.echo(f"Finished prepare4ft ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ prepare4ft.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
     savedargs.beenReconed = True
     
     typer.echo("✅ Reconstruction completed successfully!")
@@ -741,7 +806,8 @@ def ft(
     z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
     z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
     y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
-    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor")
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip launching nmrDraw for 2D projections")
 ):
     """Perform final Fourier transform of indirect dimensions."""
     savedargs = load_saved_args()
@@ -773,9 +839,16 @@ def ft(
                xyz=savedargs.xyz, yP0=savedargs.yP0, zP0=savedargs.zP0, yP1=savedargs.yP1, zP1=savedargs.zP1,
                y_zf=savedargs.yZF if hasattr(savedargs, 'yZF') else None,
                z_zf=savedargs.zZF if hasattr(savedargs, 'zZF') else None)
-    typer.echo("🔄 Performing Indirect Fourier Transforms (ft.com)")
-    os.system('chmod 770 ft.com')
-    os.system('./ft.com')
+    try:
+        chmod_executable("ft.com")
+        typer.echo("🔄 Performing Indirect Fourier Transforms (ft.com)")
+        typer.echo("Started ft")
+        t0 = time.perf_counter()
+        run_cmd("./ft.com", check=True)
+        typer.echo(f"Finished ft ({time.perf_counter() - t0:.1f} s)")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"❌ ft.com failed (exit {e.returncode})", err=True)
+        raise typer.Exit(1)
     savedargs.beenFT = True
     
     # Detect and report the generated files
@@ -790,29 +863,20 @@ def ft(
     
     typer.echo("✅ Final Fourier transform completed successfully!")
     
-    # Look for 2D projection files (pattern: *.dat files that are not 3Dspectrum.dat or data001.dat)
-    import glob
-    projection_files = []
-    excluded_files = ['3Dspectrum.dat', 'data001.dat']
-    for file in glob.glob('*.dat'):
-        if file not in excluded_files:
-            projection_files.append(file)
-    
+    excluded = {"3Dspectrum.dat", "data001.dat"}
+    projection_files = [f for f in glob.glob("*.dat") if f not in excluded]
     if projection_files:
         typer.echo("  📊 2D Projections:")
         for file in sorted(projection_files):
             typer.echo(f"    • {file}")
-        
-        # Launch nmrDraw windows for each projection
-        typer.echo("🖥️  Launching nmrDraw windows for projections...")
-        for fn, file in enumerate(sorted(projection_files)):
-            typer.echo(f"  Opening {file} in nmrDraw...")
-            if fn == len(projection_files) - 1:
-                # Last window - no & so it blocks until closed
-                os.system(f'nmrDraw -Ws 1000 700 -position {50 + (fn * 50)} {50 + (fn * 50)} -in {file}')
-            else:
-                # Other windows - run in background
-                os.system(f'nmrDraw -Ws 1000 700 -position {50 + (fn * 50)} {50 + (fn * 50)} -in {file} &')
+        if not no_draw:
+            typer.echo("🖥️  Launching nmrDraw windows for projections...")
+            for fn, file in enumerate(sorted(projection_files)):
+                typer.echo(f"  Opening {file} in nmrDraw...")
+                cmd = f"nmrDraw -Ws 1000 700 -position {50 + fn * 50} {50 + fn * 50} -in {file}"
+                if fn < len(projection_files) - 1:
+                    cmd += " &"
+                run_cmd(cmd, check=False)
     else:
         typer.echo("  ❌ No 2D projection files found")
     
@@ -832,15 +896,147 @@ def clean(
             return
 
     savedargs = load_saved_args()
-    scratch_base = getattr(savedargs, 'scratch_base', None)
-    if scratch_base:
-        os.system('rm -rf "' + scratch_base + '"')
-        typer.echo("Removed scratch: " + scratch_base)
+    scratch_base = getattr(savedargs, "scratch_base", None)
+    if scratch_base and _is_scratch_path_safe(scratch_base):
+        run_cmd(f'rm -rf "{scratch_base}"', check=False)
+        typer.echo(f"Removed scratch: {scratch_base}")
         savedargs.scratch_base = None
         save_args(savedargs)
-
-    os.system('rm -rf data001.dat yzx yzx_ist fid rec')
+    run_cmd("rm -rf data001.dat yzx yzx_ist fid rec", check=False)
     typer.echo("Cleaning completed.")
+
+
+@app.command()
+def workflow(
+    dir: str = Option(..., "--dir", "-d", help="Data directory path"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples (or 'all' for all)"),
+    ser: str = Option("ser", "--ser", help="Name of the ser file"),
+    # phasecheck
+    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0 correction"),
+    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1 correction"),
+    no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
+    ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
+    ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
+    ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    # reconstruct
+    sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
+    ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
+    itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
+    y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
+    z_n: Optional[int] = Option(None, "--zN", help="Z dimension size"),
+    auto_n: bool = Option(False, "--autoN", help="Auto N option"),
+    # ft
+    triplerez: bool = Option(False, "--triplerez", help="Triple resonance processing"),
+    xyz: bool = Option(False, "--xyz", help="Output nmrPipe xyz format"),
+    y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
+    y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
+    z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y zero filling"),
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z zero filling"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip launching nmrDraw after FT"),
+    # partial run
+    convert_only: bool = Option(False, "--convert-only", help="Only run conversion"),
+    phasecheck_only: bool = Option(False, "--phasecheck-only", help="Run convert + phasecheck, then stop"),
+    reconstruct_only: bool = Option(False, "--reconstruct-only", help="Only run reconstruction"),
+    ft_only: bool = Option(False, "--ft-only", help="Only run final Fourier transform"),
+):
+    """Run convert → phasecheck → reconstruct → ft in sequence."""
+    only_flags = [convert_only, phasecheck_only, reconstruct_only, ft_only]
+    if sum(only_flags) > 1:
+        typer.echo("❌ Use at most one of --convert-only, --phasecheck-only, --reconstruct-only, --ft-only", err=True)
+        raise typer.Exit(1)
+
+    if ft_only:
+        savedargs = load_saved_args()
+        savedargs.dir = dir
+        save_args(savedargs)
+        typer.echo("🔄 Workflow (ft only)")
+        ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1,
+           z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf, no_draw=no_draw)
+        typer.echo("🎉 Workflow completed!")
+        return
+
+    if reconstruct_only:
+        savedargs = load_saved_args()
+        savedargs.dir = dir
+        save_args(savedargs)
+        typer.echo("🔄 Workflow (reconstruct only)")
+        reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr, itr=itr,
+                    y_n=y_n, z_n=z_n, auto_n=auto_n, x_zf=x_zf)
+        typer.echo("🎉 Workflow completed!")
+        return
+
+    if convert_only:
+        typer.echo("🔄 Workflow (convert only)")
+        convert(dir=dir, nsamples=nsamples, ser=ser)
+        typer.echo("🎉 Workflow completed!")
+        return
+
+    if phasecheck_only:
+        typer.echo("🔄 Workflow (convert + phasecheck)")
+        convert(dir=dir, nsamples=nsamples, ser=ser)
+        phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol,
+                   ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf)
+        typer.echo("🎉 Workflow completed!")
+        return
+
+    typer.echo("🔄 Workflow (convert → phasecheck → reconstruct → ft)")
+    convert(dir=dir, nsamples=nsamples, ser=ser)
+    phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol,
+               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf)
+    reconstruct(nsamples=nsamples, sthr=sthr, ethr=ethr, itr=itr,
+                y_n=y_n, z_n=z_n, auto_n=auto_n, x_zf=x_zf)
+    ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1,
+       z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf, no_draw=no_draw)
+    typer.echo("🎉 Workflow completed!")
+
+
+@app.command("W")
+def workflow_alias(
+    dir: str = Option(..., "--dir", "-d", help="Data directory path"),
+    nsamples: Optional[str] = Option(None, "--nsamples", "-n", help="Number of samples (or 'all' for all)"),
+    ser: str = Option("ser", "--ser", help="Name of the ser file"),
+    x_p0: Optional[float] = Option(None, "--xP0", help="X phase 0 correction"),
+    x_p1: Optional[float] = Option(None, "--xP1", help="X phase 1 correction"),
+    no_sol: bool = Option(False, "--noSOL", help="Skip solvent suppression"),
+    ext_l: bool = Option(False, "--EXT_L", help="Extract left"),
+    ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
+    ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
+    ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    sthr: Optional[float] = Option(0.98, "--sthr", help="Start threshold"),
+    ethr: Optional[float] = Option(0.98, "--ethr", help="End threshold"),
+    itr: Optional[int] = Option(None, "--itr", help="Iteration option"),
+    y_n: Optional[int] = Option(None, "--yN", help="Y dimension size"),
+    z_n: Optional[int] = Option(None, "--zN", help="Z dimension size"),
+    auto_n: bool = Option(False, "--autoN", help="Auto N option"),
+    triplerez: bool = Option(False, "--triplerez", help="Triple resonance processing"),
+    xyz: bool = Option(False, "--xyz", help="Output nmrPipe xyz format"),
+    y_p0: Optional[float] = Option(None, "--yP0", help="Y phase 0"),
+    y_p1: Optional[float] = Option(None, "--yP1", help="Y phase 1"),
+    z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
+    z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
+    y_zf: Optional[int] = Option(None, "--yZF", help="Y zero filling"),
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z zero filling"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip launching nmrDraw after FT"),
+    convert_only: bool = Option(False, "--convert-only", help="Only run conversion"),
+    phasecheck_only: bool = Option(False, "--phasecheck-only", help="Run convert + phasecheck, then stop"),
+    reconstruct_only: bool = Option(False, "--reconstruct-only", help="Only run reconstruction"),
+    ft_only: bool = Option(False, "--ft-only", help="Only run final Fourier transform"),
+):
+    """Alias for workflow command."""
+    workflow(dir=dir, nsamples=nsamples, ser=ser,
+             x_p0=x_p0, x_p1=x_p1, no_sol=no_sol, ext_l=ext_l, ext_r=ext_r,
+             ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf,
+             sthr=sthr, ethr=ethr, itr=itr, y_n=y_n, z_n=z_n, auto_n=auto_n,
+             triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, z_p0=z_p0, z_p1=z_p1,
+             y_zf=y_zf, z_zf=z_zf, no_draw=no_draw,
+             convert_only=convert_only, phasecheck_only=phasecheck_only,
+             reconstruct_only=reconstruct_only, ft_only=ft_only)
+
 
 # Add command aliases
 @app.command("C")
@@ -892,11 +1088,12 @@ def ft_alias(
     z_p0: Optional[float] = Option(None, "--zP0", help="Z phase 0"),
     z_p1: Optional[float] = Option(None, "--zP1", help="Z phase 1"),
     y_zf: Optional[int] = Option(None, "--yZF", help="Y dimension zero filling factor"),
-    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor")
+    z_zf: Optional[int] = Option(None, "--zZF", help="Z dimension zero filling factor"),
+    no_draw: bool = Option(False, "--noDraw", help="Skip launching nmrDraw for 2D projections")
 ):
     """Alias for ft command."""
-    ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1, 
-       z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf)
+    ft(triplerez=triplerez, xyz=xyz, y_p0=y_p0, y_p1=y_p1,
+       z_p0=z_p0, z_p1=z_p1, y_zf=y_zf, z_zf=z_zf, no_draw=no_draw)
 
 @app.command("RS")
 @app.command("reset")

@@ -13,7 +13,7 @@ The basic workflow for non-uniformly sampled data reconstruction involves:
 
 1. **Conversion** from Bruker format to nmrPipe format
 2. **Reconstruction** of the indirect dimension using hmsIST while **FT Processing and Phasing** the direct and indirect dimensions
-3. **Review** with nmrDraw so phases, processing modes, extyractions can be adjusted
+3. **Review** with nmrDraw so phases, processing modes, extractions can be adjusted
 
 ### 3D Data (MHI3D)
 
@@ -41,16 +41,16 @@ cd masterHI
 pip install -r requirements.txt
 ```
 
-3. Make the scripts executable and move them to an appropriate location:
+3. Make the scripts executable and move them to an appropriate location. **Keep `masterhi_common.py` in the same directory as `MHI2D` and `MHI3D`** (they import it):
 
 ```bash
 chmod +x MHI2D MHI3D
 
 # For nmrBox users:
-mv MHI2D MHI3D ~/bin/
+mv MHI2D MHI3D masterhi_common.py ~/bin/
 
 # For other installations:
-mv MHI2D MHI3D /your/nmrPipe/nmrbin.<your_platform>/
+mv MHI2D MHI3D masterhi_common.py /your/nmrPipe/nmrbin.<your_platform>/
 ```
 
 ## Quick Start
@@ -177,8 +177,8 @@ MHI2D reconstruct --dir /path/to/data --nsamples all --sthr 0.95 --ethr 0.95
 
 - `--dir, -d`: Data directory path
 - `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
-- `--sthr`: Start threshold [default: 0.98]
-- `--ethr`: End threshold [default: 0.98]
+- `--sthr`: Start threshold [default: 0.98]; passed to hmsIST as `-i_mult`
+- `--ethr`: End threshold [default: 0.98]; passed to hmsIST as `-e_mult`
 - `--noSOL`: Skip solvent suppression
 - `--xP0, --xP1`: X dimension phase corrections
 - `--yP0, --yP1`: Y dimension phase corrections
@@ -208,7 +208,7 @@ MHI2D workflow --dir /path/to/data --reconstruct-only
 
 #### Clean
 
-Removes processing files, keeping only projections and spectrum files.
+Removes processing files (e.g. `data001.dat`, `yzx`, `yzx_ist`, `fid`, `rec`), keeping only projections and spectrum files.
 
 ```bash
 MHI2D clean
@@ -232,6 +232,7 @@ MHI2D RS  # Alias
 - `PC` - Alias for `phasecheck`
 - `R` - Alias for `reconstruct`
 - `FT` - Alias for `ft`
+- `W` - Alias for `workflow`
 - `RS` / `reset` - Alias for `reset` (clear saved configuration)
 
 #### Convert
@@ -290,8 +291,8 @@ MHI3D reconstruct --nsamples all --sthr 0.95 --ethr 0.95
 **Options:**
 
 - `--nsamples, -n`: Number of samples for reconstruction (or 'all' for all samples)
-- `--sthr`: Start threshold [default: 0.98]
-- `--ethr`: End threshold [default: 0.98]
+- `--sthr`: Start threshold [default: 0.98]; passed to hmsIST as `-i_mult`
+- `--ethr`: End threshold [default: 0.98]; passed to hmsIST as `-e_mult`
 - `--xZF`: X dimension zero filling factor
 - `--yN`: Y dimension size (reconstruction extension in Y)
 - `--zN`: Z dimension size (reconstruction extension in Z)
@@ -319,6 +320,7 @@ MHI3D ft --yP0 0.0 --yP1 0.0 --zP0 0.0 --zP1 0.0
 - `--yACQ`: Y dimension acquired
 - `--zACQ`: Z dimension acquired
 - `--xyz`: Output nmrPipe xyz format in addition to 3Dspectrum.dat
+- `--noDraw`: Skip launching nmrDraw for 2D projections (useful for batch or headless runs)
 
 **Automatic Detection and Defaults:**
 MHI3D automatically detects optimal processing parameters from your Bruker acquisition files:
@@ -335,9 +337,27 @@ MHI3D automatically detects optimal processing parameters from your Bruker acqui
 **When to use `--triplerez`:**
 Use this flag for standard Bruker triple resonance experiments (e.g., HNCO, HNCA, HNCACB) where the acquisition parameters are well-established and the automatic detection should use triple resonance defaults.
 
+#### Workflow
+
+Runs convert → phasecheck → reconstruct → ft in sequence. `--dir` is required.
+
+```bash
+# Full workflow
+MHI3D workflow --dir /path/to/data --nsamples 100
+MHI3D W --dir /path/to/data --nsamples 100
+
+# Partial runs (use at most one)
+MHI3D workflow --dir /path/to/data --convert-only
+MHI3D workflow --dir /path/to/data --phasecheck-only   # convert + phasecheck, then stop
+MHI3D workflow --dir /path/to/data --reconstruct-only  # reconstruct only (assumes convert + phasecheck done)
+MHI3D workflow --dir /path/to/data --ft-only           # FT only (assumes reconstruct done)
+```
+
+Workflow accepts the same options as the individual commands (phasecheck, reconstruct, FT); pass them as needed. Use `--noDraw` to skip launching nmrDraw after the FT step.
+
 #### Clean
 
-Removes processing files, keeping only projections and spectrum files.
+Removes processing files (e.g. `data001.dat`, `yzx`, `yzx_ist`, `fid`, `rec`). When scratch was used, the scratch tree is removed first. Keeps `3Dspectrum.dat` and 2D projections.
 
 ```bash
 MHI3D clean
@@ -578,6 +598,8 @@ MHI2D reconstruct --dir /path/to/data --noDraw
 - When you prefer to manually open spectra
 - Automated scripts where GUI display isn't needed
 
+MHI3D also supports `--noDraw` on the **ft** command (and **workflow** when it runs FT): use `MHI3D FT --noDraw` or `MHI3D W --dir /path --noDraw` to skip launching nmrDraw for 2D projections after the final Fourier transform.
+
 ## Output Files
 
 ### MHI2D Output Files
@@ -646,9 +668,24 @@ MHI3D convert --help
 MHI3D phasecheck --help
 MHI3D reconstruct --help
 MHI3D ft --help
+MHI3D workflow --help
 ```
 
 ## Technical Details
+
+**Design / architecture:** MHI2D and MHI3D generate C-shell (`.csh`) and Python scripts that call `bruk2pipe`, `nmrPipe`, and `hmsIST`. They run these scripts via subprocess from the processing directory. Configuration is stored per-directory in `.masterHI.config`.
+
+**Shared module:** `masterhi_common.py` provides config load/save, directory lookup, subprocess helpers, and script I/O used by both MHI2D and MHI3D. It must live in the same directory as the entrypoint scripts.
+
+**Progress and timing:** Long-running steps (convert, reconstruct, prepare4recon, recon, prepare4ft, ft) print `Started <step>` before execution and `Finished <step> (N s)` after, so you can see which step is running and how long it took.
+
+**Changelog:** See [CHANGELOG.md](CHANGELOG.md) for recent changes and releases.
+
+**MHI2D vs MHI3D parity:**
+
+- **Clean:** Both remove the same processing intermediates: `data001.dat`, `yzx`, `yzx_ist`, `fid`, and `rec` (entire directory). MHI2D keeps `2Dspectrum.dat` and any projections; MHI3D additionally removes scratch data (when used) and keeps `3Dspectrum.dat` and 2D projections. Use `--force` to skip the confirmation prompt.
+- **`--sthr` / `--ethr`:** Both pass these to hmsIST as `-i_mult` and `-e_mult` during reconstruction (default 0.98). MHI2D uses them in `proc.com`; MHI3D uses them in `hmsist.com`.
+- **`--yN` / `--autoN`:** MHI2D has a single indirect dimension; use `--yN` to set its size or `--autoN` for automatic. MHI3D has two indirect dimensions (Y, Z): use `--yN` and/or `--zN`, or `--autoN`. When only one of `--yN` / `--zN` is given, the other is derived from `nuslist.used` (max + 1). See the Reconstruct sections for each tool.
 
 ### MHI2D Scripts
 
