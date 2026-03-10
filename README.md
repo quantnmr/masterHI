@@ -28,6 +28,30 @@ Both MHI2D and MHI3D automate these processes by generating and executing the ne
 
 ## Installation
 
+### Automated (recommended)
+
+Clone the repo and run the installer. It uses [uv](https://docs.astral.sh/uv/) to create a lightweight Python virtual environment, installs dependencies, copies `MHI2D`, `MHI3D`, and `masterhi_common.py` to `~/bin/masterHI/`, and ensures `~/bin/masterHI` is on your PATH.
+
+```bash
+git clone https://github.com/quantnmr/masterHI.git
+cd masterHI
+./INSTALL.sh
+```
+
+`uv` will be installed automatically if it is not already present. No Anaconda or system-wide pip install is needed.
+
+To uninstall:
+
+```bash
+./INSTALL.sh --uninstall
+```
+
+**Prerequisites:** nmrPipe (including `bruk2pipe`, `nmrDraw`) and `hmsIST` must be installed separately and available on your PATH. The installer will warn if they are missing.
+
+### Manual
+
+If you prefer to manage dependencies yourself:
+
 1. Clone the repository:
 
 ```bash
