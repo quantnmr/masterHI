@@ -27,17 +27,48 @@ warn()  { printf '\033[1;33mWARNING: %s\033[0m\n' "$*"; }
 err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; }
 ok()    { printf '\033[1;32m  OK: %s\033[0m\n' "$*"; }
 
-shell_rc_files() {
-    local candidates=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.zshrc" "$HOME/.profile")
-    local found=()
+all_rc_files() {
+    local candidates=(
+        "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile"
+        "$HOME/.zshrc"
+        "$HOME/.tcshrc" "$HOME/.cshrc"
+        "$HOME/.config/fish/config.fish"
+    )
     for f in "${candidates[@]}"; do
-        [ -f "$f" ] && found+=("$f")
+        [ -f "$f" ] && printf '%s\n' "$f"
     done
-    # If nothing exists, default to .bashrc
-    if [ ${#found[@]} -eq 0 ]; then
-        found=("$HOME/.bashrc")
+}
+
+detect_user_shell() {
+    local shell_path="${SHELL:-}"
+    if [ -z "$shell_path" ]; then
+        shell_path="$(getent passwd "$(whoami)" 2>/dev/null | cut -d: -f7)" || true
     fi
-    printf '%s\n' "${found[@]}"
+    local name
+    name="$(basename "$shell_path" 2>/dev/null)" || name="bash"
+    [ -z "$name" ] && name="bash"
+    echo "$name"
+}
+
+rc_file_for_shell() {
+    local shell_name="$1"
+    case "$shell_name" in
+        zsh)   echo "$HOME/.zshrc" ;;
+        tcsh)  [ -f "$HOME/.tcshrc" ] && echo "$HOME/.tcshrc" || echo "$HOME/.cshrc" ;;
+        csh)   echo "$HOME/.cshrc" ;;
+        fish)  echo "$HOME/.config/fish/config.fish" ;;
+        bash)  [ -f "$HOME/.bashrc" ] && echo "$HOME/.bashrc" || echo "$HOME/.bash_profile" ;;
+        *)     [ -f "$HOME/.profile" ] && echo "$HOME/.profile" || echo "$HOME/.bashrc" ;;
+    esac
+}
+
+path_export_line() {
+    local shell_name="$1"
+    case "$shell_name" in
+        tcsh|csh)  printf 'setenv PATH "%s:$PATH"' "$INSTALL_DIR" ;;
+        fish)      printf 'set -gx PATH "%s" $PATH' "$INSTALL_DIR" ;;
+        *)         printf 'export PATH="%s:$PATH"' "$INSTALL_DIR" ;;
+    esac
 }
 
 path_already_has_bin() {
@@ -63,10 +94,9 @@ do_uninstall() {
     fi
 
     local rc_files
-    mapfile -t rc_files < <(shell_rc_files)
+    mapfile -t rc_files < <(all_rc_files)
     for rc in "${rc_files[@]}"; do
         if rc_already_has_marker "$rc"; then
-            # Remove the marker line and the export line that follows it
             sed -i "/$MARKER/,+1d" "$rc"
             ok "Removed PATH entry from $rc"
         fi
@@ -141,24 +171,29 @@ do_install() {
         ok "Installed $INSTALL_DIR/$f"
     done
 
-    # 5. Ensure ~/bin is on PATH -------------------------------------------
+    # 5. Ensure install dir is on PATH ----------------------------------------
+    local SOURCE_HINT=""
     if path_already_has_bin; then
         ok "$INSTALL_DIR is already on PATH"
     else
-        info "Adding $INSTALL_DIR to PATH in shell config"
-        local rc_files
-        mapfile -t rc_files < <(shell_rc_files)
-        local modified=()
-        for rc in "${rc_files[@]}"; do
-            if ! rc_already_has_marker "$rc"; then
-                printf '\n%s\nexport PATH="%s:$PATH"\n' "$MARKER" "$INSTALL_DIR" >> "$rc"
-                modified+=("$rc")
-            fi
-        done
-        if [ ${#modified[@]} -gt 0 ]; then
-            ok "Updated: ${modified[*]}"
-            warn "Restart your shell or run:  source ${modified[0]}"
+        local shell_name
+        shell_name="$(detect_user_shell)"
+        local rc
+        rc="$(rc_file_for_shell "$shell_name")"
+        local export_line
+        export_line="$(path_export_line "$shell_name")"
+
+        info "Detected shell: $shell_name"
+
+        if ! rc_already_has_marker "$rc"; then
+            mkdir -p "$(dirname "$rc")"
+            printf '\n%s\n%s\n' "$MARKER" "$export_line" >> "$rc"
+            ok "Updated: $rc"
+        else
+            ok "$rc already contains masterHI PATH entry"
         fi
+
+        SOURCE_HINT="source $rc"
     fi
 
     # 6. Check external tools ----------------------------------------------
@@ -181,6 +216,16 @@ do_install() {
     # 7. Summary -----------------------------------------------------------
     echo ""
     info "Installation complete!"
+    if [ -n "$SOURCE_HINT" ]; then
+        echo ""
+        echo "  ---------------------------------------------------------------"
+        printf '  \033[1;33mACTION REQUIRED\033[0m  To use MHI2D/MHI3D in this terminal:\n'
+        echo ""
+        printf '      \033[1m%s\033[0m\n' "$SOURCE_HINT"
+        echo ""
+        echo "  Or simply open a new terminal window."
+        echo "  ---------------------------------------------------------------"
+    fi
     echo ""
     echo "  Virtual environment:  $VENV_DIR"
     echo "  Scripts installed to: $INSTALL_DIR"
