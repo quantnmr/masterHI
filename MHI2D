@@ -123,16 +123,103 @@ class Bruker2D(object):
             self.xCAR = float(self.xO1) / float(self.xBF1)
             self.yCAR = float(self.yO1) / float(self.yBF1)
 
+    def estimate_collected_samples(self):
+        """
+        Estimate how many indirect-dimension samples were actually written to ser.
+        Uses ser byte size and direct-dimension TD from acqus.
+        """
+        try:
+            ser_size = os.path.getsize(self.ser)
+        except OSError:
+            return None
+        try:
+            td = int(float(self.td))
+        except (TypeError, ValueError, AttributeError):
+            return None
+        if td <= 0:
+            return None
+        # DTYPA=2 stores 8-byte words; other observed modes use 4-byte words.
+        bytes_per_point = 8 if getattr(self, "dtypa", 0) == 2 else 4
+        points_per_sample = td
+        bytes_per_sample = points_per_sample * bytes_per_point
+        if bytes_per_sample <= 0:
+            return None
+        estimated = ser_size // bytes_per_sample
+        if estimated <= 0:
+            return None
+        return int(estimated)
+
+    def estimate_samples_from_acqu2_td(self):
+        """
+        Estimate collected indirect-dimension samples from acqu2s TD/FnMODE.
+        For complex acquisition modes (states/tppi/echo-antiecho families),
+        TD stores real+imag pairs, so sample count is TD/2.
+        """
+        try:
+            # Parse acqu2s TD directly to avoid relying on prior side effects.
+            td2 = None
+            with open(self.ac2, encoding=BRUKER_ENCODING) as fp:
+                for line in fp:
+                    if '##$TD= ' in line:
+                        td2 = int(float(line.split()[1]))
+                        break
+        except (OSError, ValueError, IndexError):
+            return None
+        if not td2 or td2 <= 0:
+            return None
+        # qf/qsec are non-phase-sensitive in this code path; others are complex.
+        ymode = getattr(self, "yMODE", "")
+        if ymode in ("qf", "qsec"):
+            return int(td2)
+        return int(td2 // 2)
+
     def genConversion(self, filename, ns=None):
         """Generate convert.com: Bruker 2D -> nmrPipe (test.fid). ns = sample count or None for all."""
         if self.valid == False:
             print('Data Directory does not seem to contain Bruker Data')
             return 1
+        detected_samples_ser = self.estimate_collected_samples()
+        detected_samples_acq = self.estimate_samples_from_acqu2_td()
         if ns is None:
             with open(f"{self.dir}/nuslist", encoding=TEXT_ENCODING, errors="replace") as f:
-                self.nsamples = sum(1 for _ in f)
+                nus_samples = sum(1 for _ in f)
+            caps = [nus_samples]
+            if detected_samples_acq is not None:
+                caps.append(detected_samples_acq)
+            if detected_samples_ser is not None:
+                caps.append(detected_samples_ser)
+            effective_samples = min(caps)
+            if effective_samples < nus_samples:
+                reasons = []
+                if detected_samples_acq is not None and effective_samples == detected_samples_acq:
+                    reasons.append(f"acqu2s TD/FnMODE suggest {detected_samples_acq}")
+                if detected_samples_ser is not None and effective_samples == detected_samples_ser:
+                    reasons.append(f"ser size suggests {detected_samples_ser}")
+                reason_txt = ", ".join(reasons) if reasons else f"detected limit is {effective_samples}"
+                print(
+                    f"⚠️  nuslist has {nus_samples} entries but detected data supports only "
+                    f"{effective_samples} collected; using {effective_samples}. ({reason_txt})"
+                )
+                self.nsamples = effective_samples
+            else:
+                self.nsamples = nus_samples
         else:
-            self.nsamples = ns
+            self.nsamples = int(ns)
+            caps = []
+            if detected_samples_acq is not None:
+                caps.append(detected_samples_acq)
+            if detected_samples_ser is not None:
+                caps.append(detected_samples_ser)
+            if caps:
+                detected_limit = min(caps)
+            else:
+                detected_limit = None
+            if detected_limit is not None and self.nsamples > detected_limit:
+                print(
+                    f"⚠️  Requested nsamples={self.nsamples}, but detected data supports "
+                    f"{detected_limit}; using {detected_limit}."
+                )
+                self.nsamples = detected_limit
         self.yconvN = self.nsamples
         script = ['#!/bin/csh', '# hmsIST conversion script for Bruker 3D Data', '', f'bruk2pipe -in {self.ser} \\', f'  -bad 0.0 -ext -{self.byteorder} -AMX -decim {self.decim} -dspfvs {self.dspfvs} -grpdly {self.grpdly}  {self.datatypeconversion}      \\', '  -xN {0: >16}   -yN {1: >16} \\'.format(self.xN, int(self.yconvN)*2), '  -xT {0: >16}   -yT {1: >16} \\'.format(self.xT, self.yconvN), '  -xMODE {0: >13}   -yMODE {1: >13} \\'.format(self.xMODE, self.yMODE), '  -xSW {0: >15}   -ySW {1: >15} \\'.format(round(float(self.xSW), 5), round(float(self.ySW), 5)), '  -xOBS {0: >14}   -yOBS {1: >14} \\'.format(round(float(self.xOBS), 5), round(float(self.yOBS), 5)), '  -xCAR {0: >14}   -yCAR {1: >14} \\'.format(round(float(self.xCAR), 5), round(float(self.yCAR), 5)), '  -xLAB {0: >14}   -yLAB {1: >14} \\'.format(self.xLAB, self.yLAB), '  -ndim              2   -aq2D        Complex                        \\', '| nmrPipe -out ./test.fid -ov -verb']
 

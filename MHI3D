@@ -532,14 +532,17 @@ def phasecheck(
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
     ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
-    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    force: bool = Option(False, "--force", help="Bypass convert-state check and run phasecheck anyway")
 ):
     """Check phase correction in first dimension."""
     savedargs = load_saved_args()
     
-    if not savedargs.beenConverted:
+    if not savedargs.beenConverted and not force:
         typer.echo("❌ Error: You need to convert the data from Bruker to nmrPipe format first", err=True)
         raise typer.Exit(1)
+    if force and not savedargs.beenConverted:
+        typer.echo("⚠️  --force enabled: running phasecheck without saved convert state")
     
     if dir:
         savedargs.dir = dir
@@ -1058,11 +1061,12 @@ def phasecheck_alias(
     ext_r: bool = Option(False, "--EXT_R", help="Extract right"),
     ext_x1: Optional[float] = Option(None, "--EXT_x1", help="Extract x1"),
     ext_xn: Optional[float] = Option(None, "--EXT_xn", help="Extract xn"),
-    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor")
+    x_zf: Optional[int] = Option(None, "--xZF", help="X dimension zero filling factor"),
+    force: bool = Option(False, "--force", help="Bypass convert-state check and run phasecheck anyway")
 ):
     """Alias for phasecheck command."""
     phasecheck(dir=dir, x_p0=x_p0, x_p1=x_p1, no_sol=no_sol, 
-               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf)
+               ext_l=ext_l, ext_r=ext_r, ext_x1=ext_x1, ext_xn=ext_xn, x_zf=x_zf, force=force)
 
 @app.command("R")
 def reconstruct_alias(
